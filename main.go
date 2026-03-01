@@ -10,11 +10,12 @@ import (
 )
 
 func demoBoard(label string, fen game.FENCode) {
+	renderer := game.TUIRenderer{}
+
 	fmt.Printf("\n=== %s ===\n", label)
 	fmt.Printf("FEN: %s\n\n", fen)
-	var board game.BoardState
-	game.LoadFromFEN(fen, &board)
-	board.Render()
+	board := game.LoadFromFEN(fen)
+	renderer.Render(&board)
 	if board.Validate() {
 		fmt.Println("Board: valid")
 	} else {
