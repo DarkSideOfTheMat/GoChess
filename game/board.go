@@ -103,10 +103,3 @@ func (b *Board) Validate() bool {
 	}
 	return true
 }
-
-var pieceSymbols = map[Piece]string{
-	WHITE | KING: "♔", WHITE | QUEEN: "♕", WHITE | ROOK: "♖",
-	WHITE | BISHOP: "♗", WHITE | KNIGHT: "♘", WHITE | PAWN: "♙",
-	BLACK | KING: "♚", BLACK | QUEEN: "♛", BLACK | ROOK: "♜",
-	BLACK | BISHOP: "♝", BLACK | KNIGHT: "♞", BLACK | PAWN: "♟",
-}
