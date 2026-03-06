@@ -14,7 +14,7 @@ const COLOR_MASK = 24
 
 // return the masked white or black of the
 // also does basic error checking
-func (p Piece) Color() (Piece, error) {
+func (p Piece) ValidateColor() (Piece, error) {
 	masked_p := p &^ PIECE_MASK
 	if masked_p != COLOR_MASK && masked_p != 0 {
 		return masked_p, nil
@@ -22,9 +22,14 @@ func (p Piece) Color() (Piece, error) {
 	return masked_p, fmt.Errorf("Invalid piece color: %v! A piece cannot be both black and white.", p)
 }
 
-func (p Piece) IsColor(col Piece) bool {
-	p_col, _ := p.Color() // intentionally ignoring this error since we want it to panic
-	return p_col == col
+func (p Piece) Color() Piece {
+	color, _ := p.ValidateColor()
+	return color
+}
+
+func (p Piece) IsColor(color Piece) bool {
+	color = color &^ PIECE_MASK
+	return p&^PIECE_MASK == color
 }
 
 // chess pieces
