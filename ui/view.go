@@ -1,55 +1,64 @@
 package ui
 
 import (
+	"fmt"
 	game "gochess/game"
+
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 var pieceSymbols = map[game.Piece]string{
-	game.KING: " ♚ ", game.QUEEN: " ♛ ", game.ROOK: " ♜ ",
-	game.BISHOP: " ♝ ", game.KNIGHT: " ♞ ", game.PAWN: " ♟ ",
-	0: "   ",
+	game.KING:   "♚",
+	game.QUEEN:  "♛",
+	game.ROOK:   "♜",
+	game.BISHOP: "♝",
+	game.KNIGHT: "♞",
+	game.PAWN:   "♟",
+	0:           " ",
 }
 
 var fileLabels = [8]string{"a", "b", "c", "d", "e", "f", "g", "h"}
 
 func getPieceSymbol(piece game.Piece) string {
-	return pieceSymbols[piece&^game.COLOR_MASK]
+	if sym, ok := pieceSymbols[piece&^game.COLOR_MASK]; ok {
+		return sym
+	}
+	return " "
 }
 
 func (m model) formatCurrentBoard() (string, error) {
-	// Header
-	return " ", nil
-	// compositor := lipgloss.NewCompositor()
+	rankLabelStyle := lipgloss.NewStyle().Width(2)
+	fileLabelStyle := lipgloss.NewStyle().Width(5).Align(lipgloss.Center)
 
-	// // pieceFieldBuilder := strings.Builder{}
-	// // backgroundFieldBuilder := strings.Builder{}
-	// // borderFieldBuilder := strings.Builder{}
+	var rows []string
+	for rank := 7; rank >= 0; rank-- {
+		cells := []string{rankLabelStyle.Render(fmt.Sprintf("%d", rank+1))}
+		for file := 0; file < 8; file++ {
+			piece := m.game.Board.State[rank*8+file]
+			style, err := m.settings.getCellStyle((rank+file)%2 != 0, piece)
+			if err != nil {
+				return "", err
+			}
+			cells = append(cells, style.Render(getPieceSymbol(piece)))
+		}
+		rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Center, cells...))
+	}
+	fileRow := []string{"  "}
+	for _, label := range fileLabels {
+		fileRow = append(fileRow, fileLabelStyle.Render(label))
+	}
+	rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Center, fileRow...))
+	return m.settings.renderBoard(lipgloss.JoinVertical(lipgloss.Left, rows...)), nil
+}
 
-	// fieldBuilder := strings.Builder{}
-	// plain_style := lipgloss.NewStyle()
-
-	// for rank := 7; rank >= 0; rank-- {
-	// 	for file := range 8 {
-	// 		piece := m.game.Board.State[rank*8+file]
-	// 		cell, err := m.settings.getCellStyle((rank+file)%2 != 0, piece)
-
-	// 		if err != nil {
-
-	// 			return "", fmt.Errorf("Cannot render board! There is an error on rank %v file %s %s", rank+1, fileLabels[file], err)
-	// 		}
-
-	// 		fieldBuilder.WriteString(cell.Render(getPieceSymbol(piece)))
-	// 	}
-
-	// 	fieldBuilder.WriteString(plain_style.Render("\n"))
-	// }
-
-	// board_layer := lipgloss.NewLayer(fieldBuilder.String())
-
-	// canvas := lipgloss.NewCanvas(800, 800)
-
-	// canvas.Compose(board_layer)
-	// return canvas.Render(), nil
-	// // return m.settings.renderBoard(fieldBuilder.String()), nil
-	// // return fieldBuilder.String(), nil
+// Main View Function for BubbleTea
+func (m model) View() tea.View {
+	header := headerStyle.Render("==== TEST GAME, TYPE ctrl+c or q to quit! ====")
+	board, err := m.formatCurrentBoard()
+	if err != nil {
+		board = fmt.Sprintf("Error rendering board: %s", err)
+	}
+	footer := footerStyle.Render("Move: " + m.moveInput.View())
+	return tea.NewView(lipgloss.JoinVertical(lipgloss.Left, header, board, footer))
 }

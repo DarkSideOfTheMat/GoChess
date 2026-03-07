@@ -1,24 +1,27 @@
 package ui
 
 import (
-	"fmt"
 	game "gochess/game"
 
+	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 )
 
 type model struct {
-	game     *game.Game
-	settings *TUISettings
-	err      error
-	cursor   tea.Cursor
+	game      *game.Game
+	settings  *TUISettings
+	err       error
+	moveInput textinput.Model
 }
 
 func LoadTeaModelFromFen(fen game.FENCode) model {
+	ti := textinput.New()
+	ti.Placeholder = "e2e4"
+	ti.Focus()
 	return model{
-		// board
-		game:     game.NewGame(),
-		settings: &DEFAULT_SETTINGS,
+		game:      game.NewGame(),
+		settings:  &DEFAULT_SETTINGS,
+		moveInput: ti,
 	}
 }
 
@@ -30,21 +33,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
-		// exit the game
-		case "ctrl+c", "q":
+		case "ctrl+c":
 			return m, tea.Quit
 		}
 	}
-	return m, nil
-}
-
-func (m model) View() tea.View {
-	// Header
-	// s := "TEST BOARD, TYPE ctrl+c or q to quit!"
-	s, err := m.formatCurrentBoard()
-	if err != nil {
-		m.err = err
-		return tea.NewView(fmt.Sprintf("Opps! An error occured! Press q to quit! %s", err))
-	}
-	return tea.NewView(s)
+	var cmd tea.Cmd
+	m.moveInput, cmd = m.moveInput.Update(msg)
+	return m, cmd
 }
