@@ -28,3 +28,5 @@ func (m Move) Validate() error {
 	}
 	return nil
 }
+
+func isValidKnightsMove(piece Piece, startIdx int, endIdx int) {}

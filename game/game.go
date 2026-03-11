@@ -15,6 +15,7 @@ type Game struct {
 	Board    *Board
 	Clock    *Clock
 	Moves    []Move
+	moveIdx  int
 	Castling Piece // Which colors may still castle (e.g. king hasn't moved) starts as 00011000
 }
 
@@ -30,4 +31,9 @@ func NewGame() *Game {
 		Moves:    make([]Move, 0, 8850), // longest possible chess game is ~8,849.5 moves
 		Castling: WHITE | BLACK,
 	}
+}
+
+func (g Game) MakeMove(start_idx int, end_idx int) error {
+
+	return nil
 }

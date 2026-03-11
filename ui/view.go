@@ -2,9 +2,9 @@ package ui
 
 import (
 	"fmt"
+
 	game "gochess/game"
 
-	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
 
@@ -50,15 +50,4 @@ func (m model) formatCurrentBoard() (string, error) {
 	}
 	rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Center, fileRow...))
 	return m.settings.renderBoard(lipgloss.JoinVertical(lipgloss.Left, rows...)), nil
-}
-
-// Main View Function for BubbleTea
-func (m model) View() tea.View {
-	header := headerStyle.Render("==== TEST GAME, TYPE ctrl+c or q to quit! ====")
-	board, err := m.formatCurrentBoard()
-	if err != nil {
-		board = fmt.Sprintf("Error rendering board: %s", err)
-	}
-	footer := footerStyle.Render("Move: " + m.moveInput.View())
-	return tea.NewView(lipgloss.JoinVertical(lipgloss.Left, header, board, footer))
 }

@@ -2,20 +2,12 @@ package ui
 
 import (
 	"fmt"
-	game "gochess/game"
 	"image/color"
+
+	game "gochess/game"
 
 	"charm.land/lipgloss/v2"
 )
-
-type boardSettings struct {
-	boardStyle      lipgloss.Style
-	cellStyle       lipgloss.Style
-	lightCellColor  color.Color
-	darkCellColor   color.Color
-	lightPieceColor color.Color
-	darkPieceColor  color.Color
-}
 
 type TUISettings struct {
 	board boardSettings
