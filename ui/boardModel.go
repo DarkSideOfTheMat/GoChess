@@ -42,27 +42,81 @@ func (bs *boardSettings) SetCellStyle(
 //
 // including height, width and style
 type boardModel struct {
-	game     *game.Game
-	settings *boardSettings
-	style    lipgloss.Style // style of the whole sub widget, use just height and width
+	game        *game.Game
+	settings    *boardSettings
+	style       lipgloss.Style
+	boardStyle  lipgloss.Style
+	headerStyle lipgloss.Style
+	footerStyle lipgloss.Style
 }
 
 func NewBoardModel(_game *game.Game, settings *boardSettings) boardModel {
 	return boardModel{
-		game:     _game,
-		settings: settings,
-		style:    lipgloss.NewStyle(),
+		game:        _game,
+		settings:    settings,
+		style:       lipgloss.NewStyle(), // overall style of the board model
+		boardStyle:  lipgloss.NewStyle(), // style of the subcomponent
+		headerStyle: lipgloss.NewStyle(), // style of the header
+		footerStyle: lipgloss.NewStyle(), // style fo the footer
 	}
 }
 
 func (bm *boardModel) Init() tea.Cmd {
-	return nil
+	return tea.RequestWindowSize
 }
 
 // Update the boardModel when a msg is passed
 func (bm *boardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// TODO if necessary
 	//
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		bm.style.Height(msg.Height)
+		bm.style.Width(msg.Width)
+
+		// this way height and width calculations respect other style considerations
+		// like borders and padding
+		height, width := bm.style.GetHeight(), bm.style.GetWidth()
+		// header and footer will be 20% of the total height
+		boardHeight := height * 80 / 100
+		boardWidth := width
+
+		minHeaderHeight, minFooterHeight := 5, 5
+
+		footerHeight := max(
+			(height-boardHeight)/2,
+			minFooterHeight)
+		footerWidth := width
+
+		headerHeight := max(
+			(height-boardHeight)/2,
+			minHeaderHeight)
+		headerWidth := width
+
+		// make adjustments to board to respect min values
+		boardHeight = height - footerHeight - headerHeight
+
+		headerStyle := lipgloss.NewStyle().
+			AlignHorizontal(lipgloss.Center).
+			AlignVertical(lipgloss.Bottom).
+			Height(headerHeight).
+			Width(headerWidth)
+
+		footerStyle := lipgloss.NewStyle().
+			AlignHorizontal(lipgloss.Center).
+			AlignVertical(lipgloss.Top).
+			Height(footerHeight).
+			Width(footerWidth)
+
+		boardStyle := lipgloss.NewStyle().
+			Align(lipgloss.Center).
+			Height(boardHeight).
+			Width(boardWidth)
+
+		bm.boardStyle = boardStyle
+		bm.headerStyle = headerStyle
+		bm.footerStyle = footerStyle
+	}
 	return bm, nil
 }
 
@@ -75,50 +129,14 @@ func (bm *boardModel) Render() string {
 	// TODO implement the graveyards
 	//
 
-	// header and footer will be 20% of the total height
-	boardHeight := bm.style.GetHeight() * 80 / 100
-	boardWidth := bm.style.GetWidth()
-
-	minHeaderHeight, minFooterHeight := 5, 5
-
-	footerHeight := max(
-		(bm.style.GetHeight()-boardHeight)/2,
-		minFooterHeight)
-	footerWidth := bm.style.GetWidth()
-
-	headerHeight := max(
-		(bm.style.GetHeight()-boardHeight)/2,
-		minHeaderHeight)
-	headerWidth := bm.style.GetWidth()
-
-	// make adjustments to board to respect min values
-	boardHeight = bm.style.GetHeight() - footerHeight - headerHeight
-
-	headerStyle := lipgloss.NewStyle().
-		AlignHorizontal(lipgloss.Center).
-		AlignVertical(lipgloss.Bottom).
-		Height(headerHeight).
-		Width(headerWidth)
-
-	footerStyle := lipgloss.NewStyle().
-		AlignHorizontal(lipgloss.Center).
-		AlignVertical(lipgloss.Top).
-		Height(footerHeight).
-		Width(footerWidth)
-
-	boardStyle := lipgloss.NewStyle().
-		Align(lipgloss.Center).
-		Height(boardHeight).
-		Width(boardWidth)
-
 	b, _ := bm.formatCurrentBoard()
-	board := boardStyle.Render(b)
+	board := bm.boardStyle.Render(b)
 
 	WhiteGraveyard := "== Placeholder White Graveyard =="
 	BlackGraveyard := "== Placeholder Black Graveyard =="
 
-	header := headerStyle.Render(WhiteGraveyard)
-	footer := footerStyle.Render(BlackGraveyard)
+	header := bm.headerStyle.Render(WhiteGraveyard)
+	footer := bm.footerStyle.Render(BlackGraveyard)
 
 	return lipgloss.JoinVertical(lipgloss.Center, header, board, footer)
 }
