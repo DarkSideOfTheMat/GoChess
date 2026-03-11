@@ -47,6 +47,14 @@ type boardModel struct {
 	style    lipgloss.Style // style of the whole sub widget, use just height and width
 }
 
+func NewBoardModel(_game *game.Game, settings *boardSettings) boardModel {
+	return boardModel{
+		game:     _game,
+		settings: settings,
+		style:    lipgloss.NewStyle(),
+	}
+}
+
 func (bm *boardModel) Init() tea.Cmd {
 	return nil
 }

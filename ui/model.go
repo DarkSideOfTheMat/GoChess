@@ -37,7 +37,14 @@ type model struct {
 	state      programState
 }
 
-func LoadTeaModelFromFen(fen game.FENCode) model {
+func (m model) New() model {
+	// Initialize game
+	_game := game.NewGame()
+
+	// Set the default settings
+	// TODO make this an IO step of init
+	settings := &DEFAULT_SETTINGS
+
 	// initialize text input model
 	ti := textinput.New()
 	ti.CharLimit = 20
@@ -46,9 +53,31 @@ func LoadTeaModelFromFen(fen game.FENCode) model {
 	ti.Focus()
 
 	// initialize board model
-	board := boardModel.New()
+	board := NewBoardModel(_game, &settings.board)
+
 	return model{
-		game:       game.NewGame(),
+		game:       _game,
+		boardModel: board,
+		settings:   &DEFAULT_SETTINGS,
+		moveInput:  ti,
+	}
+}
+
+func LoadTeaModelFromFen(fen game.FENCode) model {
+	settings := &DEFAULT_SETTINGS
+	_game := game.LoadGameFromFen(fen)
+
+	// initialize text input model
+	ti := textinput.New()
+	ti.CharLimit = 20
+	ti.Prompt = "Move: Type a move like 'e2 e4'"
+	ti.Placeholder = "Type a move like 'e2 e4'"
+	ti.Focus()
+
+	// initialize board model
+	board := NewBoardModel(_game, &settings.board)
+	return model{
+		game:       _game,
 		boardModel: board,
 		settings:   &DEFAULT_SETTINGS,
 		moveInput:  ti,
@@ -90,9 +119,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle the screen resizing and set main perportions
 	// ...
 	case tea.WindowSizeMsg:
-		m.height, m.width = msg.Height, msg.Height
-		// adjust component width and heights
+		m.height, m.width = msg.Height, msg.Width
 
+		headerHeight := headerStyle.GetHeight()
+		footerHeight := m.moveInput.Styles().Focused.Text.GetHeight()
+
+		boardHeight := msg.Height - headerHeight - footerHeight
+		boardWidth := msg.Width
+		// adjust component width and heights
+		m.boardModel.Update(tea.WindowSizeMsg{Width: boardWidth, Height: boardHeight})
 	}
 	var cmd tea.Cmd
 	m.moveInput, cmd = m.moveInput.Update(msg)

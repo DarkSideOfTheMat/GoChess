@@ -8,8 +8,7 @@ const startingPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq 
 // move list
 
 // TODO: implement the clock
-type Clock struct {
-}
+type Clock struct{}
 
 type Game struct {
 	Board    *Board
@@ -33,7 +32,20 @@ func NewGame() *Game {
 	}
 }
 
-func (g Game) MakeMove(start_idx int, end_idx int) error {
+func LoadGameFromFen(fen FENCode) *Game {
+	board := LoadFromFEN(fen)
+	clock := Clock{}
+	moves := make([]Move, 0, 8850)
 
+	return &Game{
+		Board:    &board,
+		Clock:    &clock,
+		Moves:    moves,
+		moveIdx:  0,
+		Castling: COLOR_MASK,
+	}
+}
+
+func (g Game) MakeMove(start_idx int, end_idx int) error {
 	return nil
 }
