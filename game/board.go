@@ -2,6 +2,8 @@ package game
 
 import (
 	"strings"
+
+	"gochess/chess"
 )
 
 // FEN strings represent a chess position
@@ -29,33 +31,33 @@ func LoadFromFEN(fen FENCode) Board {
 		}
 	}
 
-	active_color := WHITE // may need a better way to
+	active_color := chess.WHITE // may need a better way to
 	if len(fields) >= 2 && fields[1] == "b" {
-		active_color = BLACK
+		active_color = chess.BLACK
 	}
 
 	return Board{board_state, active_color}
 }
 
-func fenCharToPiece(ch rune) Piece {
-	color := WHITE
+func fenCharToPiece(ch rune) chess.Piece {
+	color := chess.WHITE
 	if ch >= 'a' && ch <= 'z' {
-		color = BLACK
+		color = chess.BLACK
 		ch -= 32
 	}
 	switch ch {
 	case 'K':
-		return color | KING
+		return chess.Piece(uint8(color) | uint8(chess.KING))
 	case 'Q':
-		return color | QUEEN
+		return chess.Piece(uint8(color) | uint8(chess.QUEEN))
 	case 'R':
-		return color | ROOK
+		return chess.Piece(uint8(color) | uint8(chess.ROOK))
 	case 'B':
-		return color | BISHOP
+		return chess.Piece(uint8(color) | uint8(chess.BISHOP))
 	case 'N':
-		return color | KNIGHT
+		return chess.Piece(uint8(color) | uint8(chess.KNIGHT))
 	case 'P':
-		return color | PAWN
+		return chess.Piece(uint8(color) | uint8(chess.PAWN))
 	}
 	return 0
 }
@@ -73,29 +75,29 @@ func fenCharToPiece(ch rune) Piece {
 // 1|  0,  1,  2,  3,  4,  5,  6,  7,|
 // -+ -------------------------------+
 // .   a   b   c   d   e   f   g   h
-type BoardState [64]Piece
+type BoardState [64]chess.Piece
 
 // Board represents the current state of a game of chess.
 // It holds the piece positions and the active player's color.
 type Board struct {
 	State       BoardState
-	ActiveColor Piece // WHITE or BLACK, also can be last moved piece
+	ActiveColor chess.Color // chess.WHITE or chess.BLACK, also can be last moved piece
 }
 
 // Validate returns true if every non-empty square has a valid piece type and color.
 func (b *Board) Validate() bool {
-	const typeMask Piece = 0b00000111
-	const colorMask Piece = 0b00011000
+	const typeMask chess.Piece = 0b00000111
+	const colorMask chess.Piece = 0b00011000
 	for _, p := range b.State {
 		if p == 0 {
 			continue
 		}
 		t := p & typeMask
-		c := p & colorMask
+		c := p.ToColor()
 		if t < 1 || t > 6 {
 			return false
 		}
-		if c != WHITE && c != BLACK {
+		if c != chess.WHITE && c != chess.BLACK {
 			return false
 		}
 	}
