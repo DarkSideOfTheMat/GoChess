@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"image/color"
 
-	game "gochess/game"
+	"gochess/chess"
 
 	"charm.land/lipgloss/v2"
 )
@@ -14,17 +14,17 @@ type TUISettings struct {
 }
 
 // darkCell property
-func (s TUISettings) getCellStyle(isLightCell bool, piece game.Piece) (lipgloss.Style, error) {
+func (s TUISettings) getCellStyle(isLightCell bool, piece chess.Piece) (lipgloss.Style, error) {
 	bg := s.board.darkCellColor
 	if isLightCell {
 		bg = s.board.lightCellColor
 	}
 
-	switch piece.Color() {
-	case game.WHITE:
+	switch piece.ToColor() {
+	case chess.WHITE:
 		return lipgloss.NewStyle().Inherit(s.board.cellStyle).Background(bg).Foreground(s.board.lightPieceColor), nil
 
-	case game.BLACK:
+	case chess.BLACK:
 		return lipgloss.NewStyle().Inherit(s.board.cellStyle).Background(bg).Foreground(s.board.darkPieceColor), nil
 
 	default:

@@ -25,11 +25,20 @@ type GameSession struct {
 }
 
 func NewGameSession() GameSession {
-	// TODO:
 	return GameSession{
-		game:   game.NewGame(),
-		turn:   chess.WHITE,
-		status: protocol.SessionInitializing,
+		game:         game.NewGame(),
+		turn:         chess.WHITE,
+		status:       protocol.SessionInitializing,
+		eventsStream: make(chan protocol.GameStateEvent, 1),
+	}
+}
+
+func NewGameSessionFromFen(fen game.FENCode) GameSession {
+	return GameSession{
+		game:         game.LoadGameFromFen(fen),
+		turn:         chess.WHITE,
+		status:       protocol.SessionInitializing,
+		eventsStream: make(chan protocol.GameStateEvent, 1),
 	}
 }
 
@@ -50,10 +59,12 @@ func (gs *GameSession) Send(cmd Command) error {
 }
 
 func (gs *GameSession) Subscribe() <-chan protocol.GameStateEvent {
-	//
 	if gs.status == protocol.SessionInitializing {
-		// TODO: Add logging to signal a session is in InProgress
 		gs.status = protocol.SessionInProgress
+		// Send initial game state to the subscriber
+		go func() {
+			gs.eventsStream <- gs.getGameStateEvent()
+		}()
 	}
 	return gs.eventsStream
 }

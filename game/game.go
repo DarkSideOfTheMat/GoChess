@@ -85,6 +85,9 @@ func (g *Game) MakeMove(from chess.Square, to chess.Square, promo chess.Piece) {
 }
 
 func (g *Game) GetLastMove() *chess.Ply {
+	if len(g.Moves) == 0 {
+		return nil
+	}
 	lastTurn := g.Moves[g.moveIdx]
 	if lastTurn.BlackPly != nil {
 		return lastTurn.BlackPly

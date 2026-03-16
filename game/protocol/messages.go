@@ -11,6 +11,7 @@ type SessionStatus uint
 
 const (
 	SessionUnknown SessionStatus = iota
+	SessionInitializing
 	SessionDisconnected
 	SessionInProgress
 	SessionEnded

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 
+	"gochess/chess"
 	"gochess/game"
 
 	tea "charm.land/bubbletea/v2"
@@ -42,7 +43,7 @@ func (bs *boardSettings) SetCellStyle(
 //
 // including height, width and style
 type boardModel struct {
-	game        *game.Game
+	board       game.Board
 	settings    *boardSettings
 	style       lipgloss.Style
 	boardStyle  lipgloss.Style
@@ -50,9 +51,9 @@ type boardModel struct {
 	footerStyle lipgloss.Style
 }
 
-func NewBoardModel(_game *game.Game, settings *boardSettings) boardModel {
+func NewBoardModel(board game.Board, settings *boardSettings) boardModel {
 	return boardModel{
-		game:        _game,
+		board:       board,
 		settings:    settings,
 		style:       lipgloss.NewStyle(), // overall style of the board model
 		boardStyle:  lipgloss.NewStyle(), // style of the subcomponent
@@ -67,8 +68,6 @@ func (bm *boardModel) Init() tea.Cmd {
 
 // Update the boardModel when a msg is passed
 func (bm *boardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// TODO if necessary
-	//
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		bm.style.Height(msg.Height)
@@ -121,13 +120,9 @@ func (bm *boardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (bm *boardModel) Render() string {
-	// calculate the heights and widths for the subcomponents
-	//
-
 	// Header will contain the White Graveyard
 	// Footer will contain the Black Graveyard
 	// TODO implement the graveyards
-	//
 
 	b, _ := bm.formatCurrentBoard()
 	board := bm.boardStyle.Render(b)
@@ -149,7 +144,7 @@ func (bm *boardModel) formatCurrentBoard() (string, error) {
 	for rank := 7; rank >= 0; rank-- {
 		cells := []string{rankLabelStyle.Render(fmt.Sprintf("%d", rank+1))}
 		for file := 0; file < 8; file++ {
-			piece := bm.game.Board.State[rank*8+file]
+			piece := bm.board.State[rank*8+file]
 			style, err := bm.getCellStyle((rank+file)%2 != 0, piece)
 			if err != nil {
 				return "", err
@@ -166,17 +161,17 @@ func (bm *boardModel) formatCurrentBoard() (string, error) {
 	return lipgloss.JoinVertical(lipgloss.Left, rows...), nil
 }
 
-func (bm *boardModel) getCellStyle(isLightCell bool, piece game.Piece) (lipgloss.Style, error) {
+func (bm *boardModel) getCellStyle(isLightCell bool, piece chess.Piece) (lipgloss.Style, error) {
 	bg := bm.settings.darkCellColor
 	if isLightCell {
 		bg = bm.settings.lightCellColor
 	}
 
-	switch piece.Color() {
-	case game.WHITE:
+	switch piece.ToColor() {
+	case chess.WHITE:
 		return lipgloss.NewStyle().Inherit(bm.settings.cellStyle).Background(bg).Foreground(bm.settings.lightPieceColor), nil
 
-	case game.BLACK:
+	case chess.BLACK:
 		return lipgloss.NewStyle().Inherit(bm.settings.cellStyle).Background(bg).Foreground(bm.settings.darkPieceColor), nil
 
 	default:
