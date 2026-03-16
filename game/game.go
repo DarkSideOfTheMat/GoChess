@@ -38,11 +38,11 @@ func NewGame() *Game {
 	// TODO: implement the clock
 	clock := Clock{}
 	return &Game{
-		//
-		Board:    &newGameBoard,
-		Clock:    &clock,
-		Moves:    make([]chess.Turn, 0, 8850), // longest possible chess game is ~8,849.5 moves
-		Castling: chess.WHITE | chess.BLACK,
+		Board:        &newGameBoard,
+		Clock:        &clock,
+		activePlayer: chess.WHITE,
+		Moves:        make([]chess.Turn, 0, 8850), // longest possible chess game is ~8,849.5 moves
+		Castling:     chess.WHITE | chess.BLACK,
 	}
 }
 
@@ -52,11 +52,12 @@ func LoadGameFromFen(fen FENCode) *Game {
 	moves := make([]chess.Turn, 0, 8850)
 
 	return &Game{
-		Board:    &board,
-		Clock:    &clock,
-		Moves:    moves,
-		moveIdx:  0,
-		Castling: chess.WHITE | chess.BLACK,
+		Board:        &board,
+		Clock:        &clock,
+		activePlayer: board.ActiveColor,
+		Moves:        moves,
+		moveIdx:      0,
+		Castling:     chess.WHITE | chess.BLACK,
 	}
 }
 
@@ -64,24 +65,31 @@ func (g *Game) MakeMove(from chess.Square, to chess.Square, promo chess.Piece) {
 	// stop clock immediately for the current player
 	g.Clock.stop(g.activePlayer)
 
-	// TODO: validate the square
+	// TODO: validate the move is legal
 
-	// create a new ply
+	piece := g.Board.State[from]
 	ply := chess.Ply{
-		Piece:     g.Board.State[from],
+		Piece:     piece,
 		StartIdx:  from,
 		EndIdx:    to,
 		Promotion: promo,
 	}
+
+	// Update the board state
+	g.Board.State[to] = piece
+	g.Board.State[from] = 0
+
+	// Record the move and switch active player
 	switch g.activePlayer {
 	case chess.WHITE:
-		// we'll add a new turn
-		g.moveIdx += 1
 		g.Moves = append(g.Moves, chess.Turn{WhitePly: &ply})
+		g.moveIdx = len(g.Moves) - 1
+		g.activePlayer = chess.BLACK
 	case chess.BLACK:
-		// we'll update the current turn
 		g.Moves[g.moveIdx].BlackPly = &ply
+		g.activePlayer = chess.WHITE
 	}
+	g.Board.ActiveColor = g.activePlayer
 }
 
 func (g *Game) GetLastMove() *chess.Ply {

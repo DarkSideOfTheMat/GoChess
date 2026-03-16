@@ -42,6 +42,11 @@ func NewGameSessionFromFen(fen game.FENCode) GameSession {
 	}
 }
 
+// GetBoard returns the current board state
+func (gs *GameSession) GetBoard() game.Board {
+	return *gs.game.Board
+}
+
 func (gs *GameSession) Send(cmd Command) error {
 	var event protocol.GameStateEvent
 	switch cmd := cmd.(type) {

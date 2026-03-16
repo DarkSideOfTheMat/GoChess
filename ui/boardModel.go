@@ -5,7 +5,6 @@ import (
 	"image/color"
 
 	"gochess/chess"
-	"gochess/game"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -43,17 +42,17 @@ func (bs *boardSettings) SetCellStyle(
 //
 // including height, width and style
 type boardModel struct {
-	board       game.Board
-	settings    *boardSettings
+	state    [64]chess.Piece
+	settings *boardSettings
 	style       lipgloss.Style
 	boardStyle  lipgloss.Style
 	headerStyle lipgloss.Style
 	footerStyle lipgloss.Style
 }
 
-func NewBoardModel(board game.Board, settings *boardSettings) boardModel {
+func newBoardModel(state [64]chess.Piece, settings *boardSettings) boardModel {
 	return boardModel{
-		board:       board,
+		state:       state,
 		settings:    settings,
 		style:       lipgloss.NewStyle(), // overall style of the board model
 		boardStyle:  lipgloss.NewStyle(), // style of the subcomponent
@@ -144,7 +143,7 @@ func (bm *boardModel) formatCurrentBoard() (string, error) {
 	for rank := 7; rank >= 0; rank-- {
 		cells := []string{rankLabelStyle.Render(fmt.Sprintf("%d", rank+1))}
 		for file := 0; file < 8; file++ {
-			piece := bm.board.State[rank*8+file]
+			piece := bm.state[rank*8+file]
 			style, err := bm.getCellStyle((rank+file)%2 != 0, piece)
 			if err != nil {
 				return "", err

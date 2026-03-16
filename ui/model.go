@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	game "gochess/game"
+	"gochess/chess"
 	protocol "gochess/game/protocol"
 	session "gochess/game/session"
 
@@ -39,63 +39,31 @@ type model struct {
 	state      programState
 }
 
-func NewModel() model {
-	// Initialize session
-	sess := session.NewGameSession()
-
-	// Set the default settings
-	// TODO make this an IO step of init
+// NewModel creates a new TUI model connected to the given game session.
+// The session is created and owned by the caller.
+func NewModel(sess *session.GameSession) model {
 	settings := &DEFAULT_SETTINGS
 
-	// initialize text input model
 	ti := textinput.New()
 	ti.CharLimit = 100
 	ti.Prompt = "Type a Move: "
-
 	ti.Styles().Focused.Placeholder.Width(30)
 	ti.Placeholder = "Input a move like 'Qd1 h5' or 'e2 e4'"
 	ti.Focus()
 
-	// initialize board model with starting position
-	initialBoard := game.LoadFromFEN(game.FENCode("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"))
-	board := NewBoardModel(initialBoard, &settings.board)
+	// Get initial board state from the session
+	initialBoard := sess.GetBoard()
+	bm := newBoardModel(initialBoard.State, &settings.board)
 
 	// Subscribe now so the channel is available in Init() and Update()
 	// (Init() is a value receiver, so field assignments there are lost)
 	eventsCh := sess.Subscribe()
 
 	return model{
-		session:    &sess,
+		session:    sess,
 		eventsCh:   eventsCh,
-		boardModel: board,
-		settings:   &DEFAULT_SETTINGS,
-		moveInput:  ti,
-	}
-}
-
-func LoadTeaModelFromFen(fen game.FENCode) model {
-	sess := session.NewGameSessionFromFen(fen)
-
-	settings := &DEFAULT_SETTINGS
-
-	ti := textinput.New()
-	ti.CharLimit = 100
-	ti.Prompt = "Type a Move: "
-	ti.Styles().Focused.Placeholder.Width(30)
-	ti.Placeholder = "Input a move like 'Qd1 h5' or 'e2 e4'"
-	ti.Focus()
-
-	// initialize board model from the FEN position
-	initialBoard := game.LoadFromFEN(fen)
-	board := NewBoardModel(initialBoard, &settings.board)
-
-	eventsCh := sess.Subscribe()
-
-	return model{
-		session:    &sess,
-		eventsCh:   eventsCh,
-		boardModel: board,
-		settings:   &DEFAULT_SETTINGS,
+		boardModel: bm,
+		settings:   settings,
 		moveInput:  ti,
 	}
 }
@@ -124,13 +92,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.moveInput.Focus()
 			}
 
-			from, err := parseSquare(strings.TrimSpace(move[0]))
+			from, err := chess.ParseSquare(strings.TrimSpace(move[0]))
 			if err != nil {
 				m.moveInput.Placeholder = fmt.Sprintf("Invalid square: %s", move[0])
 				m.moveInput.Reset()
 				return m, m.moveInput.Focus()
 			}
-			to, err := parseSquare(strings.TrimSpace(move[1]))
+			to, err := chess.ParseSquare(strings.TrimSpace(move[1]))
 			if err != nil {
 				m.moveInput.Placeholder = fmt.Sprintf("Invalid square: %s", move[1])
 				m.moveInput.Reset()
@@ -143,7 +111,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				sendMove(m.session, from, to),
 			)
 		default:
-			// Player is typing
 			var cmd tea.Cmd
 			m.moveInput, cmd = m.moveInput.Update(msg)
 			return m, cmd
@@ -151,8 +118,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Handle game state updates from the session
 	case protocol.GameStateEvent:
-		m.boardModel.board = msg.Board
-		// Continue listening for the next event
+		m.boardModel.state = msg.Board.State
 		return m, listenForGameEvents(m.eventsCh)
 
 	case protocol.ErrorEvent:
@@ -166,13 +132,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		height, width := m.style.GetHeight(), m.style.GetWidth()
 
-		// find the best board height to make the board model a square
 		headerHeight := headerStyle.GetHeight()
 		footerHeight := m.moveInput.Styles().Focused.Prompt.GetHeight()
-
-		// moveInput settings
-
-		// handle the prompt settings
 
 		m.moveInput.SetWidth(width)
 
@@ -189,7 +150,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.moveInput.SetWidth(width)
 		headerStyle.Width(width)
 
-		// adjust component width and heights
 		_, cmd := m.boardModel.Update(tea.WindowSizeMsg{Width: boardWidth, Height: boardHeight})
 
 		return m, cmd
