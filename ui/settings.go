@@ -41,9 +41,15 @@ func (s TUISettings) renderBoard(input string) string {
 
 var headerStyle = lipgloss.NewStyle().
 	Bold(true).
+	AlignHorizontal(lipgloss.Center).
 	Padding(0, 1)
 
 var footerStyle = lipgloss.NewStyle().
+	Padding(0, 1)
+
+var errorStyle = lipgloss.NewStyle().
+	Foreground(lipgloss.Color("9")).
+	Bold(true).
 	Padding(0, 1)
 
 var DEFAULT_SETTINGS = TUISettings{

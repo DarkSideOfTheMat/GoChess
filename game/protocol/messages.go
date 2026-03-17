@@ -3,8 +3,9 @@
 package protocol
 
 import (
+	"time"
+
 	"gochess/chess"
-	game "gochess/game"
 )
 
 type SessionStatus uint
@@ -29,13 +30,22 @@ type ResignMessage struct {
 	ResigningPlayer chess.Color
 }
 
-// A DrawOfferMessage is sent when the player wants to request a draw
-type DrawOfferMessage struct{}
+// DrawOfferMessage is sent when a player wants to request a draw
+type DrawOfferMessage struct {
+	OfferingPlayer chess.Color
+}
+
+// DrawResponseMessage is a response to a draw offer
+type DrawResponseMessage struct {
+	AcceptingPlayer chess.Color
+	Accept          bool
+}
 
 // GameStateEvent is the current game state according to the Engine
 type GameStateEvent struct {
-	Board      game.Board
-	Clock      game.Clock
+	Board      chess.Board
+	WhiteTime  time.Duration
+	BlackTime  time.Duration
 	LastMove   *chess.Ply
 	LegalMoves []chess.Ply
 	Status     chess.GameStatus
@@ -44,5 +54,5 @@ type GameStateEvent struct {
 // ErrorEvent is sent in the case of an engine error
 type ErrorEvent struct {
 	Message string
-	err     error
+	Err     error
 }

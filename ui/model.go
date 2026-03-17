@@ -34,8 +34,10 @@ type model struct {
 	boardModel boardModel
 	settings   *TUISettings
 	err        error
+	errorMsg   string
 	moveInput  textinput.Model
-	style      lipgloss.Style
+	width      int
+	height     int
 	state      programState
 }
 
@@ -81,26 +83,39 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "q", "ctrl+z":
+		case "ctrl+c":
 			return m, tea.Quit
 		case "enter":
-			playerInput := m.moveInput.Value()
+			playerInput := strings.TrimSpace(m.moveInput.Value())
+			m.errorMsg = ""
+
+			switch strings.ToLower(playerInput) {
+			case "quit", "exit":
+				return m, tea.Quit
+			case "resign":
+				m.moveInput.Reset()
+				return m, tea.Batch(
+					m.moveInput.Focus(),
+					sendResign(m.session, m.session.GetBoard().ActiveColor),
+				)
+			}
+
 			move := strings.Split(playerInput, " ")
 			if len(move) != 2 {
-				m.moveInput.Placeholder = fmt.Sprintf("Invalid move! %s", playerInput)
+				m.errorMsg = fmt.Sprintf("Invalid move: %s", playerInput)
 				m.moveInput.Reset()
 				return m, m.moveInput.Focus()
 			}
 
 			from, err := chess.ParseSquare(strings.TrimSpace(move[0]))
 			if err != nil {
-				m.moveInput.Placeholder = fmt.Sprintf("Invalid square: %s", move[0])
+				m.errorMsg = fmt.Sprintf("Invalid square: %s", move[0])
 				m.moveInput.Reset()
 				return m, m.moveInput.Focus()
 			}
 			to, err := chess.ParseSquare(strings.TrimSpace(move[1]))
 			if err != nil {
-				m.moveInput.Placeholder = fmt.Sprintf("Invalid square: %s", move[1])
+				m.errorMsg = fmt.Sprintf("Invalid square: %s", move[1])
 				m.moveInput.Reset()
 				return m, m.moveInput.Focus()
 			}
@@ -122,35 +137,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, listenForGameEvents(m.eventsCh)
 
 	case protocol.ErrorEvent:
-		m.moveInput.Placeholder = msg.Message
+		m.errorMsg = msg.Message
 		return m, nil
 
 	// Handle the screen resizing and set main proportions
 	case tea.WindowSizeMsg:
-		m.style.Height(msg.Height)
-		m.style.Width(msg.Width)
+		m.width = msg.Width
+		m.height = msg.Height
 
-		height, width := m.style.GetHeight(), m.style.GetWidth()
+		// Header: 1 line + padding
+		headerHeight := 1
+		// Footer: 1 line for input
+		footerHeight := 1
+		// Error line if present
+		errorHeight := 0
+		if m.errorMsg != "" {
+			errorHeight = 1
+		}
 
-		headerHeight := headerStyle.GetHeight()
-		footerHeight := m.moveInput.Styles().Focused.Prompt.GetHeight()
+		// Remaining space goes to the board
+		boardHeight := m.height - headerHeight - footerHeight - errorHeight
+		if boardHeight < 1 {
+			boardHeight = 1
+		}
 
-		m.moveInput.SetWidth(width)
+		headerStyle.Width(m.width)
+		m.moveInput.SetWidth(m.width)
 
-		promptWidth := len(m.moveInput.Prompt)
-		placeholderMaxWidth := len(m.moveInput.Placeholder)
-
-		m.moveInput.Styles().Focused.Prompt.Width(promptWidth)
-		m.moveInput.Styles().Focused.Placeholder.MaxWidth(placeholderMaxWidth)
-		m.moveInput.Styles().Focused.Placeholder.Width(width - promptWidth)
-
-		boardHeight := height - headerHeight - footerHeight
-		boardWidth := width
-
-		m.moveInput.SetWidth(width)
-		headerStyle.Width(width)
-
-		_, cmd := m.boardModel.Update(tea.WindowSizeMsg{Width: boardWidth, Height: boardHeight})
+		_, cmd := m.boardModel.Update(tea.WindowSizeMsg{Width: m.width, Height: boardHeight})
 
 		return m, cmd
 	}
@@ -161,12 +175,44 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // Main View Function for BubbleTea
 func (m model) View() tea.View {
-	header := headerStyle.Render("==== TEST GAME, TYPE ctrl+c or q to quit! ====")
+	width := m.width
+	height := m.height
+	if width == 0 || height == 0 {
+		return tea.NewView("")
+	}
 
-	board := m.boardModel.Render()
+	// Header: top-center
+	header := headerStyle.Width(width).Render("==== TEST GAME — type 'quit' to exit ====")
+	headerHeight := lipgloss.Height(header)
+
+	// Footer: bottom-left
 	footer := m.moveInput.View()
+	footerHeight := lipgloss.Height(footer)
 
-	s := lipgloss.JoinVertical(lipgloss.Center, header, board)
-	s = lipgloss.JoinVertical(lipgloss.Left, s, footer)
+	// Error display above footer
+	var errorDisplay string
+	errorHeight := 0
+	if m.errorMsg != "" {
+		errorDisplay = errorStyle.Render(m.errorMsg)
+		errorHeight = lipgloss.Height(errorDisplay)
+	}
+
+	// Board: centered in remaining space
+	boardAreaHeight := height - headerHeight - footerHeight - errorHeight
+	if boardAreaHeight < 1 {
+		boardAreaHeight = 1
+	}
+
+	boardContent := m.boardModel.Render()
+	board := lipgloss.Place(width, boardAreaHeight, lipgloss.Center, lipgloss.Center, boardContent)
+
+	// Assemble: header (top-center), board (centered), error, footer (bottom-left)
+	parts := []string{header, board}
+	if errorDisplay != "" {
+		parts = append(parts, errorDisplay)
+	}
+	parts = append(parts, footer)
+
+	s := lipgloss.JoinVertical(lipgloss.Left, parts...)
 	return tea.NewView(s)
 }

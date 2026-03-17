@@ -15,7 +15,7 @@ type FENCode string
 
 // LoadFromFEN populates a Board from a FEN string.
 func LoadFromFEN(fen FENCode) Board {
-	var board_state BoardState
+	var boardState BoardState
 	fields := strings.SplitN(string(fen), " ", 3)
 
 	ranks := strings.Split(fields[0], "/")
@@ -26,17 +26,17 @@ func LoadFromFEN(fen FENCode) Board {
 				fileIdx += int(ch - '0')
 				continue
 			}
-			board_state[(7-rankIdx)*8+fileIdx] = fenCharToPiece(ch)
+			boardState[(7-rankIdx)*8+fileIdx] = fenCharToPiece(ch)
 			fileIdx++
 		}
 	}
 
-	active_color := chess.WHITE // may need a better way to
+	activeColor := chess.WHITE
 	if len(fields) >= 2 && fields[1] == "b" {
-		active_color = chess.BLACK
+		activeColor = chess.BLACK
 	}
 
-	return Board{board_state, active_color}
+	return Board{boardState, activeColor}
 }
 
 func fenCharToPiece(ch rune) chess.Piece {
@@ -62,32 +62,15 @@ func fenCharToPiece(ch rune) chess.Piece {
 	return 0
 }
 
-// the board state will be a single array, the indexes will look like:
-//
-// -+ ------------------------------ +
-// 8| 56, 57, 58, 59, 60, 61, 62, 63 |
-// 7| 48, 49, 50, 51, 52, 53, 54, 55,|
-// 6| 40, 41, 42, 43, 44, 45, 46, 47,|
-// 5| 32, 33, 34, 35, 36, 37, 38, 39,|
-// 4| 24, 25, 26, 27, 28, 29, 30, 31,|
-// 3| 16, 17, 18, 19, 20, 21, 22, 23,|
-// 2|  8,  9, 10, 11, 12, 13, 14, 15,|
-// 1|  0,  1,  2,  3,  4,  5,  6,  7,|
-// -+ -------------------------------+
-// .   a   b   c   d   e   f   g   h
-type BoardState [64]chess.Piece
+// BoardState is an alias for chess.BoardState within the game package.
+type BoardState = chess.BoardState
 
-// Board represents the current state of a game of chess.
-// It holds the piece positions and the active player's color.
-type Board struct {
-	State       BoardState
-	ActiveColor chess.Color // chess.WHITE or chess.BLACK, also can be last moved piece
-}
+// Board is an alias for chess.Board within the game package.
+type Board = chess.Board
 
-// Validate returns true if every non-empty square has a valid piece type and color.
-func (b *Board) Validate() bool {
+// ValidateBoard returns true if every non-empty square has a valid piece type and color.
+func ValidateBoard(b *Board) bool {
 	const typeMask chess.Piece = 0b00000111
-	const colorMask chess.Piece = 0b00011000
 	for _, p := range b.State {
 		if p == 0 {
 			continue

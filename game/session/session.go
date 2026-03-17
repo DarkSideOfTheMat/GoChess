@@ -12,16 +12,17 @@ type Command interface{}
 
 type Session interface {
 	Send(cmd Command) error
-	// State() GameStateEvent
 	State() protocol.SessionStatus
 	Subscribe() <-chan protocol.GameStateEvent
 }
 
 type GameSession struct {
-	game         *game.Game
-	turn         chess.Color
-	status       protocol.SessionStatus
-	eventsStream chan protocol.GameStateEvent
+	game          *game.Game
+	turn          chess.Color
+	status        protocol.SessionStatus
+	eventsStream  chan protocol.GameStateEvent
+	pendingDraw   bool
+	drawOfferedBy chess.Color
 }
 
 func NewGameSession() GameSession {
@@ -43,23 +44,31 @@ func NewGameSessionFromFen(fen game.FENCode) GameSession {
 }
 
 // GetBoard returns the current board state
-func (gs *GameSession) GetBoard() game.Board {
+func (gs *GameSession) GetBoard() chess.Board {
 	return *gs.game.Board
 }
 
 func (gs *GameSession) Send(cmd Command) error {
-	var event protocol.GameStateEvent
 	switch cmd := cmd.(type) {
 	case protocol.MoveMessage:
-		event = gs.HandleMove(cmd)
-	// case protocol.DrawOfferMessage:
-	// event = gs.HandleDrawOffer(cmd)
-	// case protocol.DrawResponseMessage:
-	// event = gs.HandelDrawResponse(cmd)
+		gs.invalidateDrawOffer()
+		event := gs.HandleMove(cmd)
+		gs.eventsStream <- event
+	case protocol.DrawOfferMessage:
+		gs.handleDrawOffer(cmd)
+		event := gs.getGameStateEvent()
+		gs.eventsStream <- event
+	case protocol.DrawResponseMessage:
+		gs.handleDrawResponse(cmd)
+		event := gs.getGameStateEvent()
+		gs.eventsStream <- event
 	case protocol.ResignMessage:
-		event = gs.HandleResignMsg(cmd)
+		gs.invalidateDrawOffer()
+		event := gs.HandleResignMsg(cmd)
+		gs.eventsStream <- event
+	default:
+		gs.invalidateDrawOffer()
 	}
-	gs.eventsStream <- event
 	return nil
 }
 
@@ -74,9 +83,8 @@ func (gs *GameSession) Subscribe() <-chan protocol.GameStateEvent {
 	return gs.eventsStream
 }
 
-// GameSession.HandleMove is the main interaction point during a chess game
+// HandleMove is the main interaction point during a chess game
 func (gs *GameSession) HandleMove(moveMsg protocol.MoveMessage) protocol.GameStateEvent {
-	// do some work to update the board
 	from := moveMsg.From
 	to := moveMsg.To
 	promo := moveMsg.Promo
@@ -85,7 +93,7 @@ func (gs *GameSession) HandleMove(moveMsg protocol.MoveMessage) protocol.GameSta
 	return gs.getGameStateEvent()
 }
 
-// GameSession.HandleResignMsg will process a resign move and return an ended game.
+// HandleResignMsg will process a resign move and return an ended game.
 func (gs *GameSession) HandleResignMsg(resignMsg protocol.ResignMessage) protocol.GameStateEvent {
 	err := gs.game.PlayerResigns(resignMsg.ResigningPlayer)
 	if err != nil {
@@ -94,10 +102,28 @@ func (gs *GameSession) HandleResignMsg(resignMsg protocol.ResignMessage) protoco
 	return gs.getGameStateEvent()
 }
 
+func (gs *GameSession) handleDrawOffer(msg protocol.DrawOfferMessage) {
+	gs.pendingDraw = true
+	gs.drawOfferedBy = msg.OfferingPlayer
+}
+
+func (gs *GameSession) handleDrawResponse(msg protocol.DrawResponseMessage) {
+	if !gs.pendingDraw {
+		return
+	}
+	if msg.Accept {
+		gs.game.Status = chess.Draw
+	}
+	gs.invalidateDrawOffer()
+}
+
+func (gs *GameSession) invalidateDrawOffer() {
+	gs.pendingDraw = false
+}
+
 func (gs *GameSession) getGameStateEvent() protocol.GameStateEvent {
 	return protocol.GameStateEvent{
 		Board:      *gs.game.Board,
-		Clock:      *gs.game.Clock,
 		LastMove:   gs.game.GetLastMove(),
 		LegalMoves: gs.game.GetLegalMoves(),
 		Status:     gs.game.Status,

@@ -1,8 +1,6 @@
 // Package chess contains shared types and interfaces
 package chess
 
-import "fmt"
-
 type GameStatus uint
 
 const (
@@ -38,26 +36,6 @@ const PieceMask Piece = 7
 // in binary 00011000
 const ColorMask Piece = 24
 
-// ValidateColor return the masked white or black of the
-// also does basic error checking
-func (p Piece) ValidateColor() (Piece, error) {
-	maskedPiece := p &^ PieceMask
-	if maskedPiece != ColorMask && maskedPiece != 0 {
-		return maskedPiece, nil
-	}
-	return maskedPiece, fmt.Errorf("invalid piece color: %v! A piece cannot be both black and white", p)
-}
-
-func (p Piece) Color() Piece {
-	color, _ := p.ValidateColor()
-	return color
-}
-
-func (p Piece) IsColor(color Piece) bool {
-	color = color &^ PieceMask
-	return p&^PieceMask == color
-}
-
 // chess pieces
 // .  King,     Queen,     Rook,   Bishop,   Knight,     Pawn
 // 00000001, 00000010, 00000011, 00000100, 00000101, 00000110
@@ -77,6 +55,27 @@ const (
 	WHITE Color = 1 << 3 << iota
 	BLACK
 )
+
+// BoardState represents the 64-square board as a flat array.
+//
+// -+ ------------------------------ +
+// 8| 56, 57, 58, 59, 60, 61, 62, 63 |
+// 7| 48, 49, 50, 51, 52, 53, 54, 55,|
+// 6| 40, 41, 42, 43, 44, 45, 46, 47,|
+// 5| 32, 33, 34, 35, 36, 37, 38, 39,|
+// 4| 24, 25, 26, 27, 28, 29, 30, 31,|
+// 3| 16, 17, 18, 19, 20, 21, 22, 23,|
+// 2|  8,  9, 10, 11, 12, 13, 14, 15,|
+// 1|  0,  1,  2,  3,  4,  5,  6,  7,|
+// -+ -------------------------------+
+// .   a   b   c   d   e   f   g   h
+type BoardState [64]Piece
+
+// Board represents the current state of a chess position.
+type Board struct {
+	State       BoardState
+	ActiveColor Color
+}
 
 type Ply struct {
 	Piece     Piece

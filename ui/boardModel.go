@@ -42,8 +42,8 @@ func (bs *boardSettings) SetCellStyle(
 //
 // including height, width and style
 type boardModel struct {
-	state    [64]chess.Piece
-	settings *boardSettings
+	state       [64]chess.Piece
+	settings    *boardSettings
 	style       lipgloss.Style
 	boardStyle  lipgloss.Style
 	headerStyle lipgloss.Style

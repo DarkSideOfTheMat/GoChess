@@ -1,4 +1,4 @@
-package ui
+package ui_test
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"gochess/chess"
 	protocol "gochess/game/protocol"
 	session "gochess/game/session"
+	"gochess/ui"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -17,13 +18,13 @@ func TestHeadlessRender(t *testing.T) {
 	var output bytes.Buffer
 	var input bytes.Buffer
 
-	input.WriteString("q")
+	input.WriteString("\x03") // ctrl+c
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	sess := session.NewGameSession()
-	m := NewModel(&sess)
+	m := ui.NewModel(&sess)
 
 	p := tea.NewProgram(m,
 		tea.WithContext(ctx),

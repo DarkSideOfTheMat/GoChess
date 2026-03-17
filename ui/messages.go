@@ -30,3 +30,15 @@ func sendMove(sess *session.GameSession, from chess.Square, to chess.Square) tea
 		return nil
 	}
 }
+
+// sendResign sends a resignation to the session
+func sendResign(sess *session.GameSession, player chess.Color) tea.Cmd {
+	return func() tea.Msg {
+		msg := protocol.ResignMessage{ResigningPlayer: player}
+		err := sess.Send(msg)
+		if err != nil {
+			return protocol.ErrorEvent{Message: fmt.Sprintf("resign error: %v", err)}
+		}
+		return nil
+	}
+}
