@@ -63,6 +63,38 @@ func TestCastleFromColorAndSide(t *testing.T) {
 	})
 }
 
+func TestStartingSquareByFileIdx(t *testing.T) {
+	tests := []struct {
+		name     string
+		square   chess.Square
+		color    chess.Color
+		expected chess.Square
+	}{
+		// White home rank is rank 1 (squares 0–7)
+		{"e4 white → e1", 28, chess.WHITE, 4},   // file e, rank 1
+		{"a3 white → a1", 16, chess.WHITE, 0},    // file a, rank 1
+		{"h6 white → h1", 47, chess.WHITE, 7},    // file h, rank 1
+		{"d2 white → d1", 11, chess.WHITE, 3},    // file d, rank 1
+		{"a1 white → a1", 0, chess.WHITE, 0},     // already on home rank
+		// Black home rank is rank 8 (squares 56–63)
+		{"d7 black → d8", 51, chess.BLACK, 59},   // file d, rank 8
+		{"a6 black → a8", 40, chess.BLACK, 56},   // file a, rank 8
+		{"h3 black → h8", 23, chess.BLACK, 63},   // file h, rank 8
+		{"e5 black → e8", 36, chess.BLACK, 60},   // file e, rank 8
+		{"h8 black → h8", 63, chess.BLACK, 63},   // already on home rank
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := game.StartingSquareByFileIdx(tt.square, tt.color)
+			if got != tt.expected {
+				t.Errorf("StartingSquareByFileIdx(%d, %d) = %d (%s), want %d (%s)",
+					tt.square, tt.color, got, got.ToString(), tt.expected, tt.expected.ToString())
+			}
+		})
+	}
+}
+
 func TestIsCastlingMove(t *testing.T) {
 	t.Run("castling detected", func(t *testing.T) {
 		tests := []struct {

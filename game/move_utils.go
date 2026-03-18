@@ -32,3 +32,12 @@ func IsCastlingMove(piece chess.Piece, from chess.Square, to chess.Square) (bool
 	}
 	return false, 0, nil
 }
+
+// Board and Square Helpers
+
+func StartingSquareByFileIdx(square chess.Square, color chess.Color) chess.Square {
+	file := square % 8
+
+	// black is 16 so we get
+	return file + chess.Square(8*7*(uint8(color)/16))
+}

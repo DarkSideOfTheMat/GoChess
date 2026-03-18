@@ -34,6 +34,7 @@ func ParseSquare(s string) (Square, error) {
 }
 
 // Piece and Color Helpers
+
 func (p Piece) ToString() string {
 	pieceLabelMap := map[Piece]string{
 		KING:   "K",
@@ -64,6 +65,13 @@ func (p Piece) IsColor(color Color) bool {
 
 func (p Piece) IsPieceSameColor(other Piece) bool {
 	return p&^PieceMask == other&^PieceMask
+}
+
+// Color Utils and Helpers
+
+// Flip returns the color of the other player, or flip to an empty mask
+func (c Color) Flip() Color {
+	return c ^ ColorMask.ToColor()
 }
 
 // Castling Utils and Helpers

@@ -119,17 +119,39 @@ func (g *Game) MakeMove(from chess.Square, to chess.Square, promo chess.Piece) e
 	if piece.WithoutColor() == chess.KING {
 		g.Castling &^= chess.CastleMask.WithColor(g.activePlayer)
 	}
+	// get pairs of rook starting squares
+
+	rookStartingSquares := []struct {
+		square chess.Square
+		side   chess.Castling
+	}{
+		{chess.Square(0), chess.CastleQueenSide},
+		{chess.Square(7), chess.CastleKingSide},
+	}
 	// g.activePlayer / 16 = 1 black, 0 for white
 	// rook is moving off queenside home square
-	if piece == chess.ROOK && from == chess.Square(0+8*(int(g.activePlayer)/16)) {
-		side, _ = CastleFromColorAndSide(g.activePlayer, chess.CastleQueenSide)
-		g.Castling &^= side
-		// rook is moving off kingside home square
-	} else if piece == chess.ROOK && from == chess.Square(7+8*(int(g.activePlayer)/16)) {
-		side, _ = CastleFromColorAndSide(g.activePlayer, chess.CastleKingSide)
-		g.Castling &^= side
+	for _, file := range rookStartingSquares {
+		if piece.WithoutColor() == chess.ROOK && from == StartingSquareByFileIdx(file.square, g.activePlayer) {
+			side, err = CastleFromColorAndSide(g.activePlayer, file.side)
+			if err != nil {
+				return err
+			}
+			g.Castling &^= side
+			// rook is moving off kingside home square
+		}
 	}
-	// check if taking rook on the opposite side home square
+
+	// check if taking rook on the opposite side home Square
+	otherPlayer := g.activePlayer.Flip()
+	if g.Castling&chess.CastleMask.WithColor(otherPlayer) != 0 && g.Board.State[to] == chess.ROOK.WithColor(otherPlayer) {
+		for _, file := range rookStartingSquares {
+			side, err = CastleFromColorAndSide(otherPlayer, file.side)
+			if err != nil {
+				return err
+			}
+			g.Castling &^= side
+		}
+	}
 
 	// Update the board state
 	g.Board.State[to] = piece
