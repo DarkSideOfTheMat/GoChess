@@ -34,7 +34,47 @@ func ParseSquare(s string) (Square, error) {
 }
 
 // Piece and Color Helpers
+func (p Piece) ToString() string {
+	pieceLabelMap := map[Piece]string{
+		KING:   "K",
+		QUEEN:  "Q",
+		ROOK:   "R",
+		BISHOP: "B",
+		KNIGHT: "N",
+		PAWN:   "P",
+	}
+	return pieceLabelMap[p.WithoutColor()]
+}
 
 func (p Piece) ToColor() Color {
 	return Color(p &^ PieceMask)
+}
+
+func (p Piece) WithColor(color Color) Piece {
+	return (p & PieceMask) | Piece(color)
+}
+
+func (p Piece) WithoutColor() Piece {
+	return (p &^ ColorMask)
+}
+
+func (p Piece) IsColor(color Color) bool {
+	return (p&^PieceMask)^Piece(color) == 0
+}
+
+func (p Piece) IsPieceSameColor(other Piece) bool {
+	return p&^PieceMask == other&^PieceMask
+}
+
+// Castling Utils and Helpers
+
+func (c Castling) WithColor(color Color) Castling {
+	return Castling(uint8(c) << (uint8(color) >> 2))
+}
+
+func (c Castling) WithoutColor() Castling {
+	for c&CastleMask == 0 && c > 0 {
+		c >>= 2
+	}
+	return c
 }

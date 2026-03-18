@@ -21,9 +21,3 @@ func PieceColorBits(p chess.Piece) chess.Piece {
 	color, _ := ValidatePieceColor(p)
 	return color
 }
-
-// PieceIsColor checks whether a piece's color bits match the given color bits.
-func PieceIsColor(p chess.Piece, color chess.Piece) bool {
-	color = color &^ chess.PieceMask
-	return p&^chess.PieceMask == color
-}

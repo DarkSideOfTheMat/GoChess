@@ -19,6 +19,11 @@ const (
 // Square is the current index on the Board
 type Square int
 
+const (
+	WhiteKingHome Square = 4  // e1
+	BlackKingHome Square = 60 // e8
+)
+
 // Piece type represents the combination of pieces and colors
 type Piece uint8
 
@@ -54,6 +59,28 @@ const (
 const (
 	WHITE Color = 1 << 3 << iota
 	BLACK
+)
+
+// Castling takes the front 3 bits of the piece mask
+// it should only be used for tracking what kind of castiling is availble
+//
+// for convience we will have uncolored and the colored variation can be calcualted with
+// Side<<(Color>>2)
+type Castling uint8
+
+const (
+	CastleKingSide = 1 << iota
+	CastleQueenSide
+	CastleWhiteKingSide
+	CastleWhiteQueenSide
+	CastleBlackKingSide
+	CastleBlackQueenSide
+)
+
+const (
+	CastleMask Castling = 0b11 << (2 * iota)
+	CastleWhiteMask
+	CastleBlackMask
 )
 
 // BoardState represents the 64-square board as a flat array.

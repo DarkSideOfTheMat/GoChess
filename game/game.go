@@ -28,7 +28,7 @@ type Game struct {
 	activePlayer chess.Color
 	Moves        []chess.Turn
 	moveIdx      int
-	Castling     chess.Color // Which colors may still castle (e.g. king hasn't moved) starts as 00011000
+	Castling     chess.Castling // Which colors may still castle (e.g. king hasn't moved) starts as 00011000
 	Status       chess.GameStatus
 }
 
@@ -42,7 +42,7 @@ func NewGame() *Game {
 		Clock:        &clock,
 		activePlayer: chess.WHITE,
 		Moves:        make([]chess.Turn, 0, 8850), // longest possible chess game is ~8,849.5 moves
-		Castling:     chess.WHITE | chess.BLACK,
+		Castling:     chess.CastleWhiteMask | chess.CastleBlackMask,
 	}
 }
 
@@ -57,11 +57,11 @@ func LoadGameFromFen(fen FENCode) *Game {
 		activePlayer: board.ActiveColor,
 		Moves:        moves,
 		moveIdx:      0,
-		Castling:     chess.WHITE | chess.BLACK,
+		Castling:     chess.CastleWhiteMask | chess.CastleBlackMask,
 	}
 }
 
-func (g *Game) MakeMove(from chess.Square, to chess.Square, promo chess.Piece) {
+func (g *Game) MakeMove(from chess.Square, to chess.Square, promo chess.Piece) error {
 	// stop clock immediately for the current player
 	g.Clock.stop(g.activePlayer)
 
@@ -75,6 +75,62 @@ func (g *Game) MakeMove(from chess.Square, to chess.Square, promo chess.Piece) {
 		Promotion: promo,
 	}
 
+	if g.Board.State[to].IsColor(g.activePlayer) {
+		return fmt.Errorf("cannot capture own piece")
+	}
+	if piece == chess.Piece(0) || piece == 0 {
+		return fmt.Errorf("no piece on square %s", from.ToString())
+	}
+	// Check the selected piece is the current players color
+	if !piece.IsColor(g.activePlayer) {
+		return fmt.Errorf("cannot move another player's piece on %s%s", piece.ToString(), from.ToString())
+	}
+
+	// Check if the move is a castling move
+	isCastling, side, err := IsCastlingMove(piece, from, to)
+	if err != nil {
+		return err
+	}
+
+	if isCastling {
+		// check that the player has the right to castle
+
+		// check the conditions for castling are met (no blocking pieces or attacks)
+
+		// Move the rook to new square, allow regular move handling below
+		switch side.WithoutColor() {
+		case chess.CastleKingSide:
+			rookTo, rookFrom := to-1, to+1
+			g.Board.State[rookTo] = g.Board.State[rookFrom]
+			g.Board.State[rookFrom] = 0
+
+			// flip off all castling for player
+			g.Castling &^= chess.CastleMask.WithColor(g.activePlayer)
+		case chess.CastleQueenSide:
+			rookTo, rookFrom := to+1, to-2
+			g.Board.State[rookTo] = g.Board.State[rookFrom]
+			g.Board.State[rookFrom] = 0
+
+			// flip off all castling for player
+			g.Castling &^= chess.CastleMask.WithColor(g.activePlayer)
+		}
+	}
+	// update castling rights
+	if piece.WithoutColor() == chess.KING {
+		g.Castling &^= chess.CastleMask.WithColor(g.activePlayer)
+	}
+	// g.activePlayer / 16 = 1 black, 0 for white
+	// rook is moving off queenside home square
+	if piece == chess.ROOK && from == chess.Square(0+8*(int(g.activePlayer)/16)) {
+		side, _ = CastleFromColorAndSide(g.activePlayer, chess.CastleQueenSide)
+		g.Castling &^= side
+		// rook is moving off kingside home square
+	} else if piece == chess.ROOK && from == chess.Square(7+8*(int(g.activePlayer)/16)) {
+		side, _ = CastleFromColorAndSide(g.activePlayer, chess.CastleKingSide)
+		g.Castling &^= side
+	}
+	// check if taking rook on the opposite side home square
+
 	// Update the board state
 	g.Board.State[to] = piece
 	g.Board.State[from] = 0
@@ -82,14 +138,17 @@ func (g *Game) MakeMove(from chess.Square, to chess.Square, promo chess.Piece) {
 	// Record the move and switch active player
 	switch g.activePlayer {
 	case chess.WHITE:
+		// record move
 		g.Moves = append(g.Moves, chess.Turn{WhitePly: &ply})
 		g.moveIdx = len(g.Moves) - 1
 		g.activePlayer = chess.BLACK
 	case chess.BLACK:
+		// record move
 		g.Moves[g.moveIdx].BlackPly = &ply
 		g.activePlayer = chess.WHITE
 	}
 	g.Board.ActiveColor = g.activePlayer
+	return nil
 }
 
 func (g *Game) GetLastMove() *chess.Ply {

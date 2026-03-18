@@ -88,8 +88,10 @@ func (gs *GameSession) HandleMove(moveMsg protocol.MoveMessage) protocol.GameSta
 	from := moveMsg.From
 	to := moveMsg.To
 	promo := moveMsg.Promo
-	gs.game.MakeMove(from, to, promo)
-
+	err := gs.game.MakeMove(from, to, promo)
+	if err != nil {
+		// TODO: handle this error
+	}
 	return gs.getGameStateEvent()
 }
 
