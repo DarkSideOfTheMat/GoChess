@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"fmt"
-
 	"gochess/chess"
 	protocol "gochess/game/protocol"
 	session "gochess/game/session"
@@ -11,34 +9,28 @@ import (
 )
 
 // listenForGameEvents returns a Bubble Tea command that blocks
-// on the session's event channel and returns the next GameStateEvent
-func listenForGameEvents(ch <-chan protocol.GameStateEvent) tea.Cmd {
+// on the session's event channel and returns the next GameEvent.
+// The concrete type (GameStateEvent or ErrorEvent) is returned as
+// a tea.Msg so model.Update can switch on it directly.
+func listenForGameEvents(ch <-chan protocol.GameEvent) tea.Cmd {
 	return func() tea.Msg {
 		return <-ch
 	}
 }
 
-// sendMove sends a move to the session and returns a command
-// that reports any error back as a tea.Msg
+// sendMove sends a move to the session. Outcomes (success or illegal-move error)
+// are delivered through the event stream and picked up by listenForGameEvents.
 func sendMove(sess *session.GameSession, from chess.Square, to chess.Square) tea.Cmd {
 	return func() tea.Msg {
-		msg := protocol.MoveMessage{From: from, To: to}
-		err := sess.Send(msg)
-		if err != nil {
-			return protocol.ErrorEvent{Message: fmt.Sprintf("move error: %v", err)}
-		}
+		sess.Send(protocol.MoveMessage{From: from, To: to})
 		return nil
 	}
 }
 
-// sendResign sends a resignation to the session
+// sendResign sends a resignation to the session.
 func sendResign(sess *session.GameSession, player chess.Color) tea.Cmd {
 	return func() tea.Msg {
-		msg := protocol.ResignMessage{ResigningPlayer: player}
-		err := sess.Send(msg)
-		if err != nil {
-			return protocol.ErrorEvent{Message: fmt.Sprintf("resign error: %v", err)}
-		}
+		sess.Send(protocol.ResignMessage{ResigningPlayer: player})
 		return nil
 	}
 }

@@ -29,16 +29,17 @@ const (
 //
 // It also handles screen size / resizing
 type model struct {
-	session    *session.GameSession
-	eventsCh   <-chan protocol.GameStateEvent
-	boardModel boardModel
-	settings   *TUISettings
-	err        error
-	errorMsg   string
-	moveInput  textinput.Model
-	width      int
-	height     int
-	state      programState
+	session        *session.GameSession
+	eventsCh       <-chan protocol.GameEvent
+	boardModel     boardModel
+	settings       *TUISettings
+	err            error
+	errorMsg       string
+	moveInput      textinput.Model
+	width          int
+	height         int
+	state          programState
+	selectedSquare *chess.Square
 }
 
 // NewModel creates a new TUI model connected to the given game session.
@@ -131,6 +132,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+	case tea.MouseClickMsg:
+		if msg.Button == tea.MouseLeft {
+			if sq, ok := m.squareFromClick(msg.X, msg.Y); ok {
+				if m.selectedSquare == nil {
+					m.selectedSquare = &sq
+					m.boardModel.selectedSquare = m.selectedSquare
+				} else {
+					from := *m.selectedSquare
+					m.selectedSquare = nil
+					m.boardModel.selectedSquare = nil
+					m.errorMsg = ""
+					return m, tea.Batch(
+						m.moveInput.Focus(),
+						sendMove(m.session, from, sq),
+					)
+				}
+			}
+		}
+		return m, nil
+
 	// Handle game state updates from the session
 	case protocol.GameStateEvent:
 		m.boardModel.state = msg.Board.State
@@ -138,7 +159,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case protocol.ErrorEvent:
 		m.errorMsg = msg.Message
-		return m, nil
+		return m, listenForGameEvents(m.eventsCh)
 
 	// Handle the screen resizing and set main proportions
 	case tea.WindowSizeMsg:
@@ -171,6 +192,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.moveInput, cmd = m.moveInput.Update(msg)
 	return m, cmd
+}
+
+// squareFromClick maps a terminal coordinate to a board square.
+// Returns the square and true if the click landed on the board grid,
+// or (0, false) if it was outside.
+//
+// Board layout (fixed dimensions):
+//   boardTotalWidth  = 46  (42 content + 2 border + 2 margin)
+//   boardTotalHeight = 13  ( 9 content + 2 border + 2 margin)
+//   gridLeft offset  = +4  (1 margin + 1 border + 2 rank label)
+//   gridTop  offset  = +2  (1 margin + 1 border)
+func (m model) squareFromClick(x, y int) (chess.Square, bool) {
+	errorHeight := 0
+	if m.errorMsg != "" {
+		errorHeight = 1
+	}
+	boardAreaHeight := m.height - 1 - 1 - errorHeight // 1 header + 1 footer
+	const boardTotalWidth, boardTotalHeight = 46, 13
+	boardTotalLeft := (m.width - boardTotalWidth) / 2
+	boardTotalTop := 1 + (boardAreaHeight-boardTotalHeight)/2 // 1 = header row
+	gridLeft := boardTotalLeft + 4
+	gridTop := boardTotalTop + 2
+	relX := x - gridLeft
+	relY := y - gridTop
+	if relX < 0 || relX >= 40 || relY < 0 || relY >= 8 {
+		return 0, false
+	}
+	file := relX / 5
+	rank := 7 - relY
+	return chess.Square(rank*8 + file), true
 }
 
 // Main View Function for BubbleTea
@@ -214,5 +265,7 @@ func (m model) View() tea.View {
 	parts = append(parts, footer)
 
 	s := lipgloss.JoinVertical(lipgloss.Left, parts...)
-	return tea.NewView(s)
+	v := tea.NewView(s)
+	v.MouseMode = tea.MouseModeCellMotion
+	return v
 }

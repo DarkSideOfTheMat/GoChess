@@ -11,12 +11,13 @@ import (
 )
 
 type boardSettings struct {
-	boardStyle      lipgloss.Style
-	cellStyle       lipgloss.Style
-	lightCellColor  color.Color
-	darkCellColor   color.Color
-	lightPieceColor color.Color
-	darkPieceColor  color.Color
+	boardStyle        lipgloss.Style
+	cellStyle         lipgloss.Style
+	lightCellColor    color.Color
+	darkCellColor     color.Color
+	lightPieceColor   color.Color
+	darkPieceColor    color.Color
+	selectedCellColor color.Color
 }
 
 func (bs *boardSettings) SetBoardStyle(style lipgloss.Style) {
@@ -42,12 +43,13 @@ func (bs *boardSettings) SetCellStyle(
 //
 // including height, width and style
 type boardModel struct {
-	state       [64]chess.Piece
-	settings    *boardSettings
-	style       lipgloss.Style
-	boardStyle  lipgloss.Style
-	headerStyle lipgloss.Style
-	footerStyle lipgloss.Style
+	state          [64]chess.Piece
+	selectedSquare *chess.Square
+	settings       *boardSettings
+	style          lipgloss.Style
+	boardStyle     lipgloss.Style
+	headerStyle    lipgloss.Style
+	footerStyle    lipgloss.Style
 }
 
 func newBoardModel(state [64]chess.Piece, settings *boardSettings) boardModel {
@@ -143,8 +145,10 @@ func (bm *boardModel) formatCurrentBoard() (string, error) {
 	for rank := 7; rank >= 0; rank-- {
 		cells := []string{rankLabelStyle.Render(fmt.Sprintf("%d", rank+1))}
 		for file := 0; file < 8; file++ {
-			piece := bm.state[rank*8+file]
-			style, err := bm.getCellStyle((rank+file)%2 != 0, piece)
+			sq := chess.Square(rank*8 + file)
+			piece := bm.state[sq]
+			isSelected := bm.selectedSquare != nil && *bm.selectedSquare == sq
+			style, err := bm.getCellStyle((rank+file)%2 != 0, piece, isSelected)
 			if err != nil {
 				return "", err
 			}
@@ -160,10 +164,14 @@ func (bm *boardModel) formatCurrentBoard() (string, error) {
 	return lipgloss.JoinVertical(lipgloss.Left, rows...), nil
 }
 
-func (bm *boardModel) getCellStyle(isLightCell bool, piece chess.Piece) (lipgloss.Style, error) {
-	bg := bm.settings.darkCellColor
-	if isLightCell {
+func (bm *boardModel) getCellStyle(isLightCell bool, piece chess.Piece, isSelected bool) (lipgloss.Style, error) {
+	var bg color.Color
+	if isSelected {
+		bg = bm.settings.selectedCellColor
+	} else if isLightCell {
 		bg = bm.settings.lightCellColor
+	} else {
+		bg = bm.settings.darkCellColor
 	}
 
 	switch piece.ToColor() {

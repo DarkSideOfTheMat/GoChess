@@ -13,6 +13,7 @@ type TUISettings struct {
 	board boardSettings
 }
 
+
 // darkCell property
 func (s TUISettings) getCellStyle(isLightCell bool, piece chess.Piece) (lipgloss.Style, error) {
 	bg := s.board.darkCellColor
@@ -64,9 +65,10 @@ var DEFAULT_SETTINGS = TUISettings{
 			Height(1).
 			Align(lipgloss.Center),
 
-		lightCellColor:  color.RGBA{R: 240, G: 217, B: 181, A: 255},
-		darkCellColor:   color.RGBA{R: 181, G: 136, B: 99, A: 255},
-		lightPieceColor: color.RGBA{R: 255, G: 255, B: 255, A: 255},
-		darkPieceColor:  color.RGBA{R: 30, G: 20, B: 10, A: 255},
+		lightCellColor:    color.RGBA{R: 240, G: 217, B: 181, A: 255},
+		darkCellColor:     color.RGBA{R: 181, G: 136, B: 99, A: 255},
+		lightPieceColor:   color.RGBA{R: 255, G: 255, B: 255, A: 255},
+		darkPieceColor:    color.RGBA{R: 30, G: 20, B: 10, A: 255},
+		selectedCellColor: color.RGBA{R: 100, G: 180, B: 100, A: 255},
 	},
 }

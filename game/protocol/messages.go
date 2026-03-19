@@ -56,3 +56,12 @@ type ErrorEvent struct {
 	Message string
 	Err     error
 }
+
+// GameEvent is implemented by all events sent from the session to the UI.
+// This allows BubbleTea to process both success and error outcomes as typed messages.
+type GameEvent interface {
+	isGameEvent()
+}
+
+func (GameStateEvent) isGameEvent() {}
+func (ErrorEvent) isGameEvent()     {}

@@ -51,7 +51,11 @@ func TestMoveE2E4ViaSession(t *testing.T) {
 	ch := sess.Subscribe()
 
 	// Receive initial state
-	initial := <-ch
+	initialEvent := <-ch
+	initial, ok := initialEvent.(protocol.GameStateEvent)
+	if !ok {
+		t.Fatalf("expected GameStateEvent, got %T", initialEvent)
+	}
 	e2 := chess.Square(12) // e2 = rank 1, file 4 = 1*8+4 = 12
 	e4 := chess.Square(28) // e4 = rank 3, file 4 = 3*8+4 = 28
 
@@ -72,7 +76,11 @@ func TestMoveE2E4ViaSession(t *testing.T) {
 	}()
 
 	// Receive updated state
-	updated := <-ch
+	updatedEvent := <-ch
+	updated, ok := updatedEvent.(protocol.GameStateEvent)
+	if !ok {
+		t.Fatalf("expected GameStateEvent after move, got %T", updatedEvent)
+	}
 
 	// Verify pawn moved
 	if updated.Board.State[e2] != 0 {

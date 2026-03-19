@@ -20,7 +20,7 @@ type GameSession struct {
 	game          *game.Game
 	turn          chess.Color
 	status        protocol.SessionStatus
-	eventsStream  chan protocol.GameStateEvent
+	eventsStream  chan protocol.GameEvent
 	pendingDraw   bool
 	drawOfferedBy chess.Color
 }
@@ -30,7 +30,7 @@ func NewGameSession() GameSession {
 		game:         game.NewGame(),
 		turn:         chess.WHITE,
 		status:       protocol.SessionInitializing,
-		eventsStream: make(chan protocol.GameStateEvent, 1),
+		eventsStream: make(chan protocol.GameEvent, 1),
 	}
 }
 
@@ -39,7 +39,7 @@ func NewGameSessionFromFen(fen game.FENCode) GameSession {
 		game:         game.LoadGameFromFen(fen),
 		turn:         chess.WHITE,
 		status:       protocol.SessionInitializing,
-		eventsStream: make(chan protocol.GameStateEvent, 1),
+		eventsStream: make(chan protocol.GameEvent, 1),
 	}
 }
 
@@ -52,27 +52,23 @@ func (gs *GameSession) Send(cmd Command) error {
 	switch cmd := cmd.(type) {
 	case protocol.MoveMessage:
 		gs.invalidateDrawOffer()
-		event := gs.HandleMove(cmd)
-		gs.eventsStream <- event
+		gs.eventsStream <- gs.HandleMove(cmd)
 	case protocol.DrawOfferMessage:
 		gs.handleDrawOffer(cmd)
-		event := gs.getGameStateEvent()
-		gs.eventsStream <- event
+		gs.eventsStream <- gs.getGameStateEvent()
 	case protocol.DrawResponseMessage:
 		gs.handleDrawResponse(cmd)
-		event := gs.getGameStateEvent()
-		gs.eventsStream <- event
+		gs.eventsStream <- gs.getGameStateEvent()
 	case protocol.ResignMessage:
 		gs.invalidateDrawOffer()
-		event := gs.HandleResignMsg(cmd)
-		gs.eventsStream <- event
+		gs.eventsStream <- gs.HandleResignMsg(cmd)
 	default:
 		gs.invalidateDrawOffer()
 	}
 	return nil
 }
 
-func (gs *GameSession) Subscribe() <-chan protocol.GameStateEvent {
+func (gs *GameSession) Subscribe() <-chan protocol.GameEvent {
 	if gs.status == protocol.SessionInitializing {
 		gs.status = protocol.SessionInProgress
 		// Send initial game state to the subscriber
@@ -84,22 +80,19 @@ func (gs *GameSession) Subscribe() <-chan protocol.GameStateEvent {
 }
 
 // HandleMove is the main interaction point during a chess game
-func (gs *GameSession) HandleMove(moveMsg protocol.MoveMessage) protocol.GameStateEvent {
-	from := moveMsg.From
-	to := moveMsg.To
-	promo := moveMsg.Promo
-	err := gs.game.MakeMove(from, to, promo)
+func (gs *GameSession) HandleMove(moveMsg protocol.MoveMessage) protocol.GameEvent {
+	err := gs.game.MakeMove(moveMsg.From, moveMsg.To, moveMsg.Promo)
 	if err != nil {
-		// TODO: handle this error
+		return protocol.ErrorEvent{Message: err.Error(), Err: err}
 	}
 	return gs.getGameStateEvent()
 }
 
 // HandleResignMsg will process a resign move and return an ended game.
-func (gs *GameSession) HandleResignMsg(resignMsg protocol.ResignMessage) protocol.GameStateEvent {
+func (gs *GameSession) HandleResignMsg(resignMsg protocol.ResignMessage) protocol.GameEvent {
 	err := gs.game.PlayerResigns(resignMsg.ResigningPlayer)
 	if err != nil {
-		// TODO: handle this error
+		return protocol.ErrorEvent{Message: err.Error(), Err: err}
 	}
 	return gs.getGameStateEvent()
 }
