@@ -11,13 +11,14 @@ import (
 )
 
 type boardSettings struct {
-	boardStyle        lipgloss.Style
-	cellStyle         lipgloss.Style
-	lightCellColor    color.Color
-	darkCellColor     color.Color
-	lightPieceColor   color.Color
-	darkPieceColor    color.Color
-	selectedCellColor color.Color
+	boardStyle          lipgloss.Style
+	cellStyle           lipgloss.Style
+	lightCellColor      color.Color
+	darkCellColor       color.Color
+	lightPieceColor     color.Color
+	darkPieceColor      color.Color
+	selectedCellColor   color.Color
+	legalMoveCellColor  color.Color
 }
 
 func (bs *boardSettings) SetBoardStyle(style lipgloss.Style) {
@@ -43,23 +44,25 @@ func (bs *boardSettings) SetCellStyle(
 //
 // including height, width and style
 type boardModel struct {
-	state          [64]chess.Piece
-	selectedSquare *chess.Square
-	settings       *boardSettings
-	style          lipgloss.Style
-	boardStyle     lipgloss.Style
-	headerStyle    lipgloss.Style
-	footerStyle    lipgloss.Style
+	state            [64]chess.Piece
+	selectedSquare   *chess.Square
+	legalMoveSquares map[chess.Square]bool
+	settings         *boardSettings
+	style            lipgloss.Style
+	boardStyle       lipgloss.Style
+	headerStyle      lipgloss.Style
+	footerStyle      lipgloss.Style
 }
 
 func newBoardModel(state [64]chess.Piece, settings *boardSettings) boardModel {
 	return boardModel{
-		state:       state,
-		settings:    settings,
-		style:       lipgloss.NewStyle(), // overall style of the board model
-		boardStyle:  lipgloss.NewStyle(), // style of the subcomponent
-		headerStyle: lipgloss.NewStyle(), // style of the header
-		footerStyle: lipgloss.NewStyle(), // style fo the footer
+		state:            state,
+		legalMoveSquares: make(map[chess.Square]bool),
+		settings:         settings,
+		style:            lipgloss.NewStyle(), // overall style of the board model
+		boardStyle:       lipgloss.NewStyle(), // style of the subcomponent
+		headerStyle:      lipgloss.NewStyle(), // style of the header
+		footerStyle:      lipgloss.NewStyle(), // style fo the footer
 	}
 }
 
@@ -148,7 +151,8 @@ func (bm *boardModel) formatCurrentBoard() (string, error) {
 			sq := chess.Square(rank*8 + file)
 			piece := bm.state[sq]
 			isSelected := bm.selectedSquare != nil && *bm.selectedSquare == sq
-			style, err := bm.getCellStyle((rank+file)%2 != 0, piece, isSelected)
+			isLegalTarget := bm.legalMoveSquares[sq]
+			style, err := bm.getCellStyle((rank+file)%2 != 0, piece, isSelected, isLegalTarget)
 			if err != nil {
 				return "", err
 			}
@@ -164,10 +168,12 @@ func (bm *boardModel) formatCurrentBoard() (string, error) {
 	return lipgloss.JoinVertical(lipgloss.Left, rows...), nil
 }
 
-func (bm *boardModel) getCellStyle(isLightCell bool, piece chess.Piece, isSelected bool) (lipgloss.Style, error) {
+func (bm *boardModel) getCellStyle(isLightCell bool, piece chess.Piece, isSelected bool, isLegalTarget bool) (lipgloss.Style, error) {
 	var bg color.Color
 	if isSelected {
 		bg = bm.settings.selectedCellColor
+	} else if isLegalTarget {
+		bg = bm.settings.legalMoveCellColor
 	} else if isLightCell {
 		bg = bm.settings.lightCellColor
 	} else {

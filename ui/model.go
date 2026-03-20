@@ -40,6 +40,7 @@ type model struct {
 	height         int
 	state          programState
 	selectedSquare *chess.Square
+	legalMoves     []chess.Ply
 }
 
 // NewModel creates a new TUI model connected to the given game session.
@@ -138,10 +139,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.selectedSquare == nil {
 					m.selectedSquare = &sq
 					m.boardModel.selectedSquare = m.selectedSquare
+					m.boardModel.legalMoveSquares = legalTargetsFrom(sq, m.legalMoves)
 				} else {
 					from := *m.selectedSquare
 					m.selectedSquare = nil
 					m.boardModel.selectedSquare = nil
+					m.boardModel.legalMoveSquares = make(map[chess.Square]bool)
 					m.errorMsg = ""
 					return m, tea.Batch(
 						m.moveInput.Focus(),
@@ -155,6 +158,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle game state updates from the session
 	case protocol.GameStateEvent:
 		m.boardModel.state = msg.Board.State
+		m.legalMoves = msg.LegalMoves
 		return m, listenForGameEvents(m.eventsCh)
 
 	case protocol.ErrorEvent:
@@ -192,6 +196,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.moveInput, cmd = m.moveInput.Update(msg)
 	return m, cmd
+}
+
+// legalTargetsFrom returns a set of destination squares for all legal moves
+// starting from the given square.
+func legalTargetsFrom(from chess.Square, moves []chess.Ply) map[chess.Square]bool {
+	targets := make(map[chess.Square]bool)
+	for _, m := range moves {
+		if m.StartIdx == from {
+			targets[m.EndIdx] = true
+		}
+	}
+	return targets
 }
 
 // squareFromClick maps a terminal coordinate to a board square.
