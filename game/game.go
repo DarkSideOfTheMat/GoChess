@@ -185,33 +185,8 @@ func (g *Game) GetLastMove() *chess.Ply {
 }
 
 func (g *Game) GetLegalMoves() []chess.Ply {
-	moves := make([]chess.Ply, 218)
-	var piece chess.Piece
-	player := g.Board.ActiveColor
-	// iteratively find all the pseudo-legal moves
-	for i := range g.Board.State {
-		piece = g.Board.State[i]
-		// can only move pieces of the current player
-		if piece == 0 || piece.IsColor(g.activePlayer.Flip()) {
-			continue
-		}
-
-		switch piece.WithoutColor() {
-		case chess.KING:
-			append(moves, g.GetKingMoves(i))
-		case chess.QUEEN:
-			append(moves, g.GetQueenMoves(i))
-		case chess.ROOK:
-			append(moves, g.GetRookMoves(i))
-		case chess.BISHOP:
-			append(moves, g.GetBishopMoves(i))
-		case chess.KNIGHT:
-			append(moves, g.GetKnightMoves(i))
-		case chess.PAWN:
-			append(moves, g.GetPawnMoves(i))
-		}
-	}
-	return moves
+	mg := IterativePsuedoLegalMoveGenerator{board: *g.Board}
+	return mg.GenLegalMoves()
 }
 
 func (g *Game) PlayerResigns(player chess.Color) error {
