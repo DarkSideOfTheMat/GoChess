@@ -185,16 +185,33 @@ func (g *Game) GetLastMove() *chess.Ply {
 }
 
 func (g *Game) GetLegalMoves() []chess.Ply {
-	switch g.Status {
-	case chess.InProgress, chess.Disconnected, chess.Unknown:
-		// TODO: define the possible legal moves
+	moves := make([]chess.Ply, 218)
+	var piece chess.Piece
+	player := g.Board.ActiveColor
+	// iteratively find all the pseudo-legal moves
+	for i := range g.Board.State {
+		piece = g.Board.State[i]
+		// can only move pieces of the current player
+		if piece == 0 || piece.IsColor(g.activePlayer.Flip()) {
+			continue
+		}
 
-		// note: there the theorethical max is 218
-		// this is a placeholder until I implement a function
-		// to calculate the possible legal moves.
-		return make([]chess.Ply, 218)
+		switch piece.WithoutColor() {
+		case chess.KING:
+			append(moves, g.GetKingMoves(i))
+		case chess.QUEEN:
+			append(moves, g.GetQueenMoves(i))
+		case chess.ROOK:
+			append(moves, g.GetRookMoves(i))
+		case chess.BISHOP:
+			append(moves, g.GetBishopMoves(i))
+		case chess.KNIGHT:
+			append(moves, g.GetKnightMoves(i))
+		case chess.PAWN:
+			append(moves, g.GetPawnMoves(i))
+		}
 	}
-	return nil
+	return moves
 }
 
 func (g *Game) PlayerResigns(player chess.Color) error {
