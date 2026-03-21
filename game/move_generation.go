@@ -19,7 +19,7 @@ type IterativePsuedoLegalMoveGenerator struct {
 }
 
 func (mg IterativePsuedoLegalMoveGenerator) GenLegalMoves() []chess.Ply {
-	moves := make([]chess.Ply, MaxLegalMoves)
+	moves := make([]chess.Ply, 0, MaxLegalMoves)
 	player := mg.board.ActiveColor
 	otherPlayer := mg.board.ActiveColor.Flip()
 	var piece chess.Piece
@@ -55,7 +55,7 @@ func (mg IterativePsuedoLegalMoveGenerator) GenLegalMoves() []chess.Ply {
 
 func (mg IterativePsuedoLegalMoveGenerator) GenKingMoves(i chess.Square, p chess.Piece) []chess.Ply {
 	// a king can move at most 9 times
-	moves := make([]chess.Ply, 9)
+	moves := make([]chess.Ply, 0, 9)
 	return moves
 }
 
@@ -65,17 +65,17 @@ func (mg IterativePsuedoLegalMoveGenerator) GenQueenMoves(i chess.Square, p ches
 }
 
 func (mg IterativePsuedoLegalMoveGenerator) GenRookMoves(i chess.Square, p chess.Piece) []chess.Ply {
-	moves := make([]chess.Ply, 64)
+	moves := make([]chess.Ply, 0, 64)
 	return moves
 }
 
 func (mg IterativePsuedoLegalMoveGenerator) GenBishopMoves(i chess.Square, p chess.Piece) []chess.Ply {
-	moves := make([]chess.Ply, 64)
+	moves := make([]chess.Ply, 0, 64)
 	return moves
 }
 
 func (mg IterativePsuedoLegalMoveGenerator) GenPawnMoves(i chess.Square, p chess.Piece) []chess.Ply {
-	moves := make([]chess.Ply, 9)
+	moves := make([]chess.Ply, 0, 9)
 	file := i % 8
 	rank := i / 8
 
@@ -120,7 +120,7 @@ func (mg IterativePsuedoLegalMoveGenerator) GenPawnMoves(i chess.Square, p chess
 
 	// up 1
 	if mg.board.State[i+8*moveDirection] == 0 {
-		moves = addPly(moves, i+8, rank == promoRank-moveDirection)
+		moves = addPly(moves, 8*moveDirection, rank == promoRank-moveDirection)
 
 		// up 2, can't skip pieces
 		if rank == startingRank && mg.board.State[i+16*moveDirection] == 0 {
@@ -142,8 +142,7 @@ func (mg IterativePsuedoLegalMoveGenerator) GenPawnMoves(i chess.Square, p chess
 }
 
 func (mg IterativePsuedoLegalMoveGenerator) GenKnightMoves(i chess.Square, p chess.Piece) []chess.Ply {
-	moves := make([]chess.Ply, 8)
-	j := 0
+	moves := make([]chess.Ply, 0, 8)
 	file := i % 8
 
 	mkPly := func(offset chess.Square) chess.Ply {
@@ -159,52 +158,44 @@ func (mg IterativePsuedoLegalMoveGenerator) GenKnightMoves(i chess.Square, p che
 	if file > 0 {
 		// left 1, up 2
 		if i+15 < 64 {
-			moves[j] = mkPly(15)
-			j += 1
+			moves = append(moves, mkPly(15))
 		}
 		// left 1, down 2
 		if i-17 >= 0 {
-			moves[j] = mkPly(-17)
-			j += 1
+			moves = append(moves, mkPly(-17))
 		}
 	}
 	// not B
 	if file > 1 {
 		// left 2, up 1
 		if i+6 < 64 {
-			moves[j] = mkPly(6)
-			j += 1
+			moves = append(moves, mkPly(6))
 		}
 		// left 2, down 1
 		if i-10 >= 0 {
-			moves[j] = mkPly(-10)
-			j += 1
+			moves = append(moves, mkPly(-10))
 		}
 	}
 	// not G
 	if file < 6 {
 		// right 2 up 1
 		if i+10 < 64 {
-			moves[j] = mkPly(10)
-			j += 1
+			moves = append(moves, mkPly(10))
 		}
 		// right 2 down 1
 		if i-6 >= 0 {
-			moves[j] = mkPly(-6)
-			j += 1
+			moves = append(moves, mkPly(-6))
 		}
 	}
 	// not H
 	if file < 7 {
 		// right 1 up 2
 		if i+17 < 64 {
-			moves[j] = mkPly(17)
-			j += 1
+			moves = append(moves, mkPly(17))
 		}
 		// right 1 down 2
 		if i-15 >= 0 {
-			moves[j] = mkPly(-15)
-			// not updating j since we don't loop
+			moves = append(moves, mkPly(-15))
 		}
 	}
 	return moves
