@@ -24,7 +24,7 @@ func (mg IterativePsuedoLegalMoveGenerator) GenLegalMoves() []chess.Ply {
 	otherPlayer := mg.board.ActiveColor.Flip()
 	var piece chess.Piece
 
-	for i := chess.Square(0); i < 64; i++ {
+	for i := range chess.Square(64) {
 		piece = mg.board.State[i]
 		if piece == 0 || piece.IsColor(otherPlayer) {
 			continue
@@ -75,38 +75,70 @@ func (mg IterativePsuedoLegalMoveGenerator) GenBishopMoves(i chess.Square, p che
 }
 
 func (mg IterativePsuedoLegalMoveGenerator) GenPawnMoves(i chess.Square, p chess.Piece) []chess.Ply {
-	moves := make([]chess.Ply, 16)
-	j := 0
-	// file := i % 8
+	moves := make([]chess.Ply, 9)
+	file := i % 8
 	rank := i / 8
+
+	otherPlayer := p.ToColor().Flip()
 
 	var promoRank chess.Square = 7    // rank "8"
 	var startingRank chess.Square = 1 // rank "2"
 	var moveDirection chess.Square = 1
+
+	var leftAttack chess.Square = 7
+	var rightAttack chess.Square = 9
+
 	if p.IsColor(chess.BLACK) {
 		promoRank = 0    // rank "1"
 		startingRank = 6 // rank "7"
 		moveDirection = -1
+		leftAttack, rightAttack = rightAttack*moveDirection, leftAttack*moveDirection
 	}
 
-	if rank == startingRank {
-		if mg.board.State[i+8*moveDirection] == 0 && mg.board.State[i+16*moveDirection] == 0 {
-			moves[j] = chess.Ply{
-				Piece:     p,
-				StartIdx:  i,
-				EndIdx:    i + 16*moveDirection,
-				Promotion: 0,
-			}
-			j += 1
+	addPly := func(moves []chess.Ply, offset chess.Square, isPromo bool) []chess.Ply {
+		if isPromo {
+			moves = append(
+				moves,
+				chess.Ply{Piece: p, StartIdx: i, EndIdx: i + offset, Promotion: chess.QUEEN},
+				chess.Ply{Piece: p, StartIdx: i, EndIdx: i + offset, Promotion: chess.ROOK},
+				chess.Ply{Piece: p, StartIdx: i, EndIdx: i + offset, Promotion: chess.KNIGHT},
+			)
+		} else {
+			moves = append(
+				moves,
+				chess.Ply{
+					Piece:     p,
+					StartIdx:  i,
+					EndIdx:    i + offset,
+					Promotion: 0,
+				},
+			)
 		}
-	} else if rank == promoRank-8*moveDirection {
-		// add the promotion moves
-		if mg.board.State[i+8*moveDirection] == 0 {
-			// TODO: finish pawn move logic
+
+		return moves
+	}
+
+	// up 1
+	if mg.board.State[i+8*moveDirection] == 0 {
+		moves = addPly(moves, i+8, rank == promoRank-moveDirection)
+
+		// up 2, can't skip pieces
+		if rank == startingRank && mg.board.State[i+16*moveDirection] == 0 {
+			moves = addPly(moves, 16*moveDirection, false)
 		}
 	}
 
-	return moves
+	// attacks
+	// left
+	if file > 0 && mg.board.State[i+leftAttack].IsColor(otherPlayer) {
+		moves = addPly(moves, leftAttack, rank == promoRank-moveDirection)
+	}
+	// right
+	if file < 7 && mg.board.State[i+rightAttack].IsColor(otherPlayer) {
+		moves = addPly(moves, rightAttack, rank == promoRank-moveDirection)
+	}
+
+	return moves[:]
 }
 
 func (mg IterativePsuedoLegalMoveGenerator) GenKnightMoves(i chess.Square, p chess.Piece) []chess.Ply {
@@ -172,7 +204,7 @@ func (mg IterativePsuedoLegalMoveGenerator) GenKnightMoves(i chess.Square, p che
 		// right 1 down 2
 		if i-15 >= 0 {
 			moves[j] = mkPly(-15)
-			j += 1
+			// not updating j since we don't loop
 		}
 	}
 	return moves
