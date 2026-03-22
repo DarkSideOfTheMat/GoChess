@@ -173,8 +173,8 @@ func (mg IterativePsuedoLegalMoveGenerator) GenBishopMoves(i chess.Square, p che
 	player := mg.board.ActiveColor
 	otherPlayer := player.Flip()
 	// left... stops on A-file
-	for u, d := i+7, i-9; u.File() > 0 || d.File() > 0; u, d = u+7, d-9 {
-		if u.File() > 0 && u < 64 {
+	for u, d := i+7, i-9; u < 64 || d >= 0; u, d = u+7, d-9 {
+		if u < 64 {
 			if mg.board.State[u].IsColor(player) {
 				u = 64 // break
 			} else if mg.board.State[u].IsColor(otherPlayer) {
@@ -182,9 +182,12 @@ func (mg IterativePsuedoLegalMoveGenerator) GenBishopMoves(i chess.Square, p che
 				u = 64 // break
 			} else {
 				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: u, Promotion: 0})
+				if u.File() == 0 {
+					u = 64 // break
+				}
 			}
 		}
-		if d.File() > 0 && d >= 0 {
+		if d >= 0 {
 			if mg.board.State[d].IsColor(player) {
 				d = -1 // break
 			} else if mg.board.State[d].IsColor(otherPlayer) {
@@ -192,13 +195,16 @@ func (mg IterativePsuedoLegalMoveGenerator) GenBishopMoves(i chess.Square, p che
 				d = -1 // break
 			} else {
 				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: d, Promotion: 0})
+				if d.File() == 0 {
+					d = -1 // break
+				}
 			}
 		}
 	}
 
 	// right... stops on H-File
-	for u, d := i+9, i-7; u.File() < 7 || d.File() < 7; u, d = u+9, d-7 {
-		if u.File() < 7 && u < 64 {
+	for u, d := i+9, i-7; u < 64 || d >= 0; u, d = u+9, d-7 {
+		if u < 64 {
 			if mg.board.State[u].IsColor(player) {
 				u = 64 // break
 			} else if mg.board.State[u].IsColor(otherPlayer) {
@@ -206,9 +212,12 @@ func (mg IterativePsuedoLegalMoveGenerator) GenBishopMoves(i chess.Square, p che
 				u = 64 // break
 			} else {
 				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: u, Promotion: 0})
+				if u.File() == 7 {
+					u = 64 // reached H-file, stop
+				}
 			}
 		}
-		if d.File() < 7 && d >= 0 {
+		if d >= 0 {
 			if mg.board.State[d].IsColor(player) {
 				d = -1 // break
 			} else if mg.board.State[d].IsColor(otherPlayer) {
@@ -216,6 +225,9 @@ func (mg IterativePsuedoLegalMoveGenerator) GenBishopMoves(i chess.Square, p che
 				d = -1 // break
 			} else {
 				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: d, Promotion: 0})
+				if d.File() == 7 {
+					d = -1 // reached H-file, stop
+				}
 			}
 		}
 	}
