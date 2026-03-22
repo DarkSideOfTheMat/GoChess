@@ -137,6 +137,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Button == tea.MouseLeft {
 			if sq, ok := m.squareFromClick(msg.X, msg.Y); ok {
 				if m.selectedSquare == nil {
+					// Only allow selecting squares that have legal moves
+					if !hasLegalMoves(sq, m.legalMoves) {
+						return m, nil
+					}
 					m.selectedSquare = &sq
 					m.boardModel.selectedSquare = m.selectedSquare
 					m.boardModel.legalMoveSquares = legalTargetsFrom(sq, m.legalMoves)
@@ -196,6 +200,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.moveInput, cmd = m.moveInput.Update(msg)
 	return m, cmd
+}
+
+// hasLegalMoves returns true if any legal move starts from the given square.
+func hasLegalMoves(from chess.Square, moves []chess.Ply) bool {
+	for _, m := range moves {
+		if m.StartIdx == from {
+			return true
+		}
+	}
+	return false
 }
 
 // legalTargetsFrom returns a set of destination squares for all legal moves
