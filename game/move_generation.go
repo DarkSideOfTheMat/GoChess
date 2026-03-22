@@ -132,34 +132,23 @@ func (mg IterativePsuedoLegalMoveGenerator) GenRookMoves(i chess.Square, p chess
 	// up & down
 	for d, u := i-8, i+8; d >= 0 || u < 64; d, u = d-8, u+8 {
 		if d >= 0 {
-			if mg.board.State[d].IsColor(otherPlayer) {
+			if mg.board.State[d].IsColor(player) {
 				d = -1
+			} else if mg.board.State[d].IsColor(otherPlayer) {
+				moves = append(moves, chess.Ply{p, i, d, 0})
+				d = -1
+			} else {
+				moves = append(moves, chess.Ply{p, i, d, 0})
 			}
 		}
 		if u < 64 {
-			if mg.board.State[u].IsColor(otherPlayer) {
-				d = 64
-			} else if mg.board.State[u].IsColor(player) {
-				moves = append(
-					moves,
-					chess.Ply{
-						Piece:     p,
-						StartIdx:  i,
-						EndIdx:    u,
-						Promotion: 0,
-					},
-				)
-				d = 64
+			if mg.board.State[u].IsColor(player) {
+				u = 64
+			} else if mg.board.State[u].IsColor(otherPlayer) {
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: u, Promotion: 0})
+				u = 64
 			} else {
-				moves = append(
-					moves,
-					chess.Ply{
-						Piece:     p,
-						StartIdx:  i,
-						EndIdx:    u,
-						Promotion: 0,
-					},
-				)
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: u, Promotion: 0})
 			}
 		}
 	}
