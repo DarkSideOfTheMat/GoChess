@@ -2,6 +2,18 @@ package chess
 
 import "fmt"
 
+// Square Helpers
+
+// File returns the 0 indexed file left to right
+func (s Square) File() Square {
+	return s % 8
+}
+
+// Rank returns the 0 indexed rank
+func (s Square) Rank() Square {
+	return s / 8
+}
+
 // FileNameFromInt returns the file name associated with the current square
 //
 //	for example, square 0 will return 'a', square 15 will return 'h' etc

@@ -45,6 +45,7 @@ func (mg IterativePsuedoLegalMoveGenerator) GenLegalMoves() []chess.Ply {
 			moves = append(moves, mg.GenPawnMoves(i, piece)...)
 		}
 	}
+	// en-passant
 
 	// prune moves
 
@@ -65,12 +66,108 @@ func (mg IterativePsuedoLegalMoveGenerator) GenQueenMoves(i chess.Square, p ches
 }
 
 func (mg IterativePsuedoLegalMoveGenerator) GenRookMoves(i chess.Square, p chess.Piece) []chess.Ply {
-	moves := make([]chess.Ply, 0, 64)
+	moves := make([]chess.Ply, 0, 16)
+
+	player := mg.board.ActiveColor
+	otherPlayer := mg.board.ActiveColor.Flip()
+
+	// left and right
+	for l, r := i-1, i+1; l >= 0 && l.Rank() == i.Rank() || r.Rank() == i.Rank(); l, r = l-1, r+1 {
+		if l.Rank() == i.Rank() && l >= 0 {
+			if mg.board.State[l].IsColor(player) {
+				// path blocked
+				l = l - 8
+			} else if mg.board.State[l].IsColor(otherPlayer) {
+				moves = append(
+					moves,
+					chess.Ply{
+						Piece:     p,
+						StartIdx:  i,
+						EndIdx:    l,
+						Promotion: 0,
+					},
+				)
+				l = l - 8
+			} else {
+				moves = append(
+					moves,
+					chess.Ply{
+						Piece:     p,
+						StartIdx:  i,
+						EndIdx:    l,
+						Promotion: 0,
+					},
+				)
+			}
+		}
+		if r.Rank() == i.Rank() && r < 64 {
+			if mg.board.State[r].IsColor(player) {
+				r = r + 8
+			} else if mg.board.State[r].IsColor(otherPlayer) {
+				moves = append(
+					moves,
+					chess.Ply{
+						Piece:     p,
+						StartIdx:  i,
+						EndIdx:    r,
+						Promotion: 0,
+					},
+				)
+				r = r + 8
+			} else {
+				moves = append(
+					moves,
+					chess.Ply{
+						Piece:     p,
+						StartIdx:  i,
+						EndIdx:    r,
+						Promotion: 0,
+					},
+				)
+			}
+		}
+	}
+	// up & down
+	for d, u := i-8, i+8; d >= 0 || u < 64; d, u = d-8, u+8 {
+		if d >= 0 {
+			if mg.board.State[d].IsColor(otherPlayer) {
+				d = -1
+			}
+		}
+		if u < 64 {
+			if mg.board.State[u].IsColor(otherPlayer) {
+				d = 64
+			} else if mg.board.State[u].IsColor(player) {
+				moves = append(
+					moves,
+					chess.Ply{
+						Piece:     p,
+						StartIdx:  i,
+						EndIdx:    u,
+						Promotion: 0,
+					},
+				)
+				d = 64
+			} else {
+				moves = append(
+					moves,
+					chess.Ply{
+						Piece:     p,
+						StartIdx:  i,
+						EndIdx:    u,
+						Promotion: 0,
+					},
+				)
+			}
+		}
+	}
+
+	//
 	return moves
 }
 
 func (mg IterativePsuedoLegalMoveGenerator) GenBishopMoves(i chess.Square, p chess.Piece) []chess.Ply {
-	moves := make([]chess.Ply, 0, 64)
+	moves := make([]chess.Ply, 0, 16)
 	return moves
 }
 
@@ -144,6 +241,7 @@ func (mg IterativePsuedoLegalMoveGenerator) GenPawnMoves(i chess.Square, p chess
 func (mg IterativePsuedoLegalMoveGenerator) GenKnightMoves(i chess.Square, p chess.Piece) []chess.Ply {
 	moves := make([]chess.Ply, 0, 8)
 	file := i % 8
+	player := p.ToColor()
 
 	mkPly := func(offset chess.Square) chess.Ply {
 		return chess.Ply{
@@ -157,44 +255,44 @@ func (mg IterativePsuedoLegalMoveGenerator) GenKnightMoves(i chess.Square, p che
 	// not A
 	if file > 0 {
 		// left 1, up 2
-		if i+15 < 64 {
+		if i+15 < 64 && !mg.board.State[i+15].IsColor(player) {
 			moves = append(moves, mkPly(15))
 		}
 		// left 1, down 2
-		if i-17 >= 0 {
+		if i-17 >= 0 && !mg.board.State[i-17].IsColor(player) {
 			moves = append(moves, mkPly(-17))
 		}
 	}
 	// not B
 	if file > 1 {
 		// left 2, up 1
-		if i+6 < 64 {
+		if i+6 < 64 && !mg.board.State[i+6].IsColor(player) {
 			moves = append(moves, mkPly(6))
 		}
 		// left 2, down 1
-		if i-10 >= 0 {
+		if i-10 >= 0 && !mg.board.State[i-10].IsColor(player) {
 			moves = append(moves, mkPly(-10))
 		}
 	}
 	// not G
 	if file < 6 {
 		// right 2 up 1
-		if i+10 < 64 {
+		if i+10 < 64 && !mg.board.State[i+10].IsColor(player) {
 			moves = append(moves, mkPly(10))
 		}
 		// right 2 down 1
-		if i-6 >= 0 {
+		if i-6 >= 0 && !mg.board.State[i-6].IsColor(player) {
 			moves = append(moves, mkPly(-6))
 		}
 	}
 	// not H
 	if file < 7 {
 		// right 1 up 2
-		if i+17 < 64 {
+		if i+17 < 64 && !mg.board.State[i+17].IsColor(player) {
 			moves = append(moves, mkPly(17))
 		}
 		// right 1 down 2
-		if i-15 >= 0 {
+		if i-15 >= 0 && !mg.board.State[i-15].IsColor(player) {
 			moves = append(moves, mkPly(-15))
 		}
 	}
