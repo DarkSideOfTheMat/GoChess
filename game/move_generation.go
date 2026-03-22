@@ -46,6 +46,8 @@ func (mg IterativePsuedoLegalMoveGenerator) GenLegalMoves() []chess.Ply {
 		}
 	}
 	// en-passant
+	// this is a fake move so we won't implement it.
+	// Only cheaters with access to "Google" ever use it
 
 	// prune moves
 
@@ -168,6 +170,56 @@ func (mg IterativePsuedoLegalMoveGenerator) GenRookMoves(i chess.Square, p chess
 
 func (mg IterativePsuedoLegalMoveGenerator) GenBishopMoves(i chess.Square, p chess.Piece) []chess.Ply {
 	moves := make([]chess.Ply, 0, 16)
+	player := mg.board.ActiveColor
+	otherPlayer := player.Flip()
+	// left... stops on A-file
+	for u, d := i+7, i-9; u.File() > 0 || d.File() > 0; u, d = u+7, d-9 {
+		if u.File() > 0 && u < 64 {
+			if mg.board.State[u].IsColor(player) {
+				u = 64 // break
+			} else if mg.board.State[u].IsColor(otherPlayer) {
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: u, Promotion: 0})
+				u = 64 // break
+			} else {
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: u, Promotion: 0})
+			}
+		}
+		if d.File() > 0 && d >= 0 {
+			if mg.board.State[d].IsColor(player) {
+				d = -1 // break
+			} else if mg.board.State[d].IsColor(otherPlayer) {
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: d, Promotion: 0})
+				d = -1 // break
+			} else {
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: d, Promotion: 0})
+			}
+		}
+	}
+
+	// right... stops on H-File
+	for u, d := i+9, i-7; u.File() < 7 || d.File() < 7; u, d = u+9, d-7 {
+		if u.File() < 7 && u < 64 {
+			if mg.board.State[u].IsColor(player) {
+				u = 64 // break
+			} else if mg.board.State[u].IsColor(otherPlayer) {
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: u, Promotion: 0})
+				u = 64 // break
+			} else {
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: u, Promotion: 0})
+			}
+		}
+		if d.File() < 7 && d >= 0 {
+			if mg.board.State[d].IsColor(player) {
+				d = -1 // break
+			} else if mg.board.State[d].IsColor(otherPlayer) {
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: d, Promotion: 0})
+				d = -1 // break
+			} else {
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: d, Promotion: 0})
+			}
+		}
+	}
+
 	return moves
 }
 
