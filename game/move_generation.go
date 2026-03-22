@@ -59,6 +59,12 @@ func (mg IterativePsuedoLegalMoveGenerator) GenLegalMoves() []chess.Ply {
 func (mg IterativePsuedoLegalMoveGenerator) GenKingMoves(i chess.Square, p chess.Piece) []chess.Ply {
 	// a king can move at most 9 times
 	moves := make([]chess.Ply, 0, 9)
+	player := p.ToColor()
+	for _, j := range [8]chess.Square{-9, -8, -7, -1, 1, 7, 8, 9} {
+		if 0 <= i+j && i+j < 64 && !mg.board.State[i+j].IsColor(player) {
+			moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: i + j, Promotion: 0})
+		}
+	}
 	return moves
 }
 
@@ -80,52 +86,20 @@ func (mg IterativePsuedoLegalMoveGenerator) GenRookMoves(i chess.Square, p chess
 				// path blocked
 				l = l - 8
 			} else if mg.board.State[l].IsColor(otherPlayer) {
-				moves = append(
-					moves,
-					chess.Ply{
-						Piece:     p,
-						StartIdx:  i,
-						EndIdx:    l,
-						Promotion: 0,
-					},
-				)
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: l, Promotion: 0})
 				l = l - 8
 			} else {
-				moves = append(
-					moves,
-					chess.Ply{
-						Piece:     p,
-						StartIdx:  i,
-						EndIdx:    l,
-						Promotion: 0,
-					},
-				)
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: l, Promotion: 0})
 			}
 		}
 		if r.Rank() == i.Rank() && r < 64 {
 			if mg.board.State[r].IsColor(player) {
 				r = r + 8
 			} else if mg.board.State[r].IsColor(otherPlayer) {
-				moves = append(
-					moves,
-					chess.Ply{
-						Piece:     p,
-						StartIdx:  i,
-						EndIdx:    r,
-						Promotion: 0,
-					},
-				)
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: r, Promotion: 0})
 				r = r + 8
 			} else {
-				moves = append(
-					moves,
-					chess.Ply{
-						Piece:     p,
-						StartIdx:  i,
-						EndIdx:    r,
-						Promotion: 0,
-					},
-				)
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: r, Promotion: 0})
 			}
 		}
 	}
@@ -135,10 +109,10 @@ func (mg IterativePsuedoLegalMoveGenerator) GenRookMoves(i chess.Square, p chess
 			if mg.board.State[d].IsColor(player) {
 				d = -1
 			} else if mg.board.State[d].IsColor(otherPlayer) {
-				moves = append(moves, chess.Ply{p, i, d, 0})
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: d, Promotion: 0})
 				d = -1
 			} else {
-				moves = append(moves, chess.Ply{p, i, d, 0})
+				moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: d, Promotion: 0})
 			}
 		}
 		if u < 64 {
