@@ -4,6 +4,13 @@ import "fmt"
 
 // Square Helpers
 
+func SquareAbs(x Square) Square {
+	if x < 0 {
+		return x * -1
+	}
+	return x
+}
+
 // File returns the 0 indexed file left to right
 func (s Square) File() Square {
 	return s % 8

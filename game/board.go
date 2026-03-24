@@ -6,9 +6,11 @@ import (
 	"gochess/chess"
 )
 
-// FEN strings represent a chess position
+// FENCode strings represent a chess position
 // describing each rank starting with the last rank separated by /.
 // PNBRQK for white pieces and pnbrqk for black
+//
+// fields are "<board> <activeColor> <castlingRights> <enpassantTarget> <halfTurnCounter> <fullTurn>"
 //
 // example: 1B6/2n5/p1N1P2R/P1K3N1/4Pk2/1Q2p2p/6nP/1B4R1 w - - 0 1
 type FENCode string
@@ -16,7 +18,7 @@ type FENCode string
 // LoadFromFEN populates a Board from a FEN string.
 func LoadFromFEN(fen FENCode) Board {
 	var boardState BoardState
-	fields := strings.SplitN(string(fen), " ", 3)
+	fields := strings.Split(string(fen), " ")
 
 	ranks := strings.Split(fields[0], "/")
 	for rankIdx, rankStr := range ranks {
@@ -36,7 +38,38 @@ func LoadFromFEN(fen FENCode) Board {
 		activeColor = chess.BLACK
 	}
 
-	return Board{boardState, activeColor}
+	var castling chess.Castling
+	if len(fields) >= 3 {
+	Loop:
+		for _, r := range fields[2] {
+			switch r {
+			case 'K':
+				castling |= chess.CastleWhiteKingSide
+			case 'Q':
+				castling |= chess.CastleWhiteQueenSide
+			case 'k':
+				castling |= chess.CastleBlackKingSide
+			case 'q':
+				castling |= chess.CastleBlackQueenSide
+			case '-':
+				break Loop
+			}
+		}
+	}
+
+	var enpassantTarget chess.Square
+	var err error
+
+	if len(fields) >= 4 {
+		enpassantTarget, err = chess.ParseSquare(fields[3])
+		if err != nil {
+			enpassantTarget = -1
+		}
+	} else {
+		enpassantTarget = -1
+	}
+
+	return Board{State: boardState, ActiveColor: activeColor, Castling: castling, EnpassantTarget: enpassantTarget}
 }
 
 func fenCharToPiece(ch rune) chess.Piece {
@@ -87,7 +120,7 @@ func ValidateBoard(b *Board) bool {
 	return true
 }
 
-// BitBoards are a representation of the current board state...
+// BitBoard represents the current board state...
 // each bit represents a position on the board corresponding to the
 // matching tile...
 //
@@ -121,7 +154,7 @@ func ValidKingMoves(startIdx int) BitBoard {
 	return BitBoard(b)
 }
 
-// Return a BitBoard of the possible valid knights moves
+// ValidKnightsMoves return a BitBoard of the possible valid knights moves
 // starting on the index...
 // note: these are just the possbilities, doesn't respect pins or checks
 func ValidKnightsMoves(startIdx int) BitBoard {
@@ -154,7 +187,7 @@ func ValidKnightsMoves(startIdx int) BitBoard {
 	return BitBoard(b)
 }
 
-// Return a BitBoard of sliding Rook moves
+// ValidRookMoves Return a BitBoard of sliding Rook moves
 // starting on the index
 // note: these don't respect pins, checks or blocking pieces
 func ValidRookMoves(startIdx int) BitBoard {

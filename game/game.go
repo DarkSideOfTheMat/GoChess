@@ -157,6 +157,31 @@ func (g *Game) MakeMove(from chess.Square, to chess.Square, promo chess.Piece) e
 	g.Board.State[to] = piece
 	g.Board.State[from] = 0
 
+	// Enpassant
+	if to == g.Board.EnpassantTarget && piece.WithoutColor() == chess.PAWN {
+		moveDirection := chess.Square(1)
+		if g.Board.ActiveColor == chess.BLACK {
+			moveDirection = chess.Square(-1)
+		}
+		if g.Board.State[to-8*moveDirection].WithoutColor() == chess.PAWN {
+			g.Board.State[to-8*moveDirection] = chess.Piece(0) // nil piece
+		} else {
+			// A pawn shouldn't be able to move to EnpassantTarget unless capturing
+			return fmt.Errorf(
+				"pawn cannot enpassant from %s to %s. Missing pawn on %s",
+				from.ToString(),
+				to.ToString(),
+				(to - 8).ToString(),
+			)
+		}
+	}
+	// Update Enpassant target square
+	if piece.WithoutColor() == chess.PAWN && chess.SquareAbs(to-from) == 16 {
+		g.Board.EnpassantTarget = chess.Square(to - (to-from)/2)
+	} else {
+		g.Board.EnpassantTarget = chess.Square(-1)
+	}
+
 	// Record the move and switch active player
 	switch g.activePlayer {
 	case chess.WHITE:

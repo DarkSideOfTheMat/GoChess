@@ -65,6 +65,7 @@ func (mg IterativePsuedoLegalMoveGenerator) GenKingMoves(i chess.Square, p chess
 			moves = append(moves, chess.Ply{Piece: p, StartIdx: i, EndIdx: i + j, Promotion: 0})
 		}
 	}
+	// Castling
 	return moves
 }
 
@@ -204,6 +205,7 @@ func (mg IterativePsuedoLegalMoveGenerator) GenPawnMoves(i chess.Square, p chess
 	rank := i / 8
 
 	otherPlayer := p.ToColor().Flip()
+	enpassantTarget := mg.board.EnpassantTarget
 
 	var promoRank chess.Square = 7    // rank "8"
 	var startingRank chess.Square = 1 // rank "2"
@@ -238,7 +240,6 @@ func (mg IterativePsuedoLegalMoveGenerator) GenPawnMoves(i chess.Square, p chess
 				},
 			)
 		}
-
 		return moves
 	}
 
@@ -261,7 +262,15 @@ func (mg IterativePsuedoLegalMoveGenerator) GenPawnMoves(i chess.Square, p chess
 	if file < 7 && mg.board.State[i+rightAttack].IsColor(otherPlayer) {
 		moves = addPly(moves, rightAttack, rank == promoRank-moveDirection)
 	}
-
+	// en-passant NOTE: we still need to handle this logic in game to kill the pawn
+	if mg.board.EnpassantTarget >= 0 && (i+rightAttack == enpassantTarget || i+leftAttack == enpassantTarget) {
+		moves = append(moves, chess.Ply{
+			Piece:     p,
+			StartIdx:  i,
+			EndIdx:    enpassantTarget,
+			Promotion: 0, // cannot promote on enpassant
+		})
+	}
 	return moves[:]
 }
 

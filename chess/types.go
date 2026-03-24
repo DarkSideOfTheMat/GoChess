@@ -100,8 +100,10 @@ type BoardState [64]Piece
 
 // Board represents the current state of a chess position.
 type Board struct {
-	State       BoardState
-	ActiveColor Color
+	State           BoardState
+	ActiveColor     Color
+	Castling        Castling
+	EnpassantTarget Square // square that was moved through by pawn moving 2 squares, -1 otherwise
 }
 
 type Ply struct {
